@@ -4,23 +4,15 @@ import importlib
 
 class WBFM:
   def __init__(self, tau, sfs, fs, size, cuda=False):
+    ## Import Dynamic Modules
+    self.load_modules(cuda)
+
+    ## Variables to Self
     self.tau = tau
     self.fs = fs
     self.sfs = sfs
-    self.cuda = cuda
     self.dec = sfs/fs
     self.size = size
-
-    if self.cuda:
-      self.xs = importlib.import_module('cusignal')
-      self.xp = importlib.import_module('cupy')
-      self.np = importlib.import_module('numpy')
-      self.ss = importlib.import_module('scipy.signal')
-    else:
-      self.xs = importlib.import_module('scipy.signal')
-      self.xp = importlib.import_module('numpy')
-      self.np = self.xp 
-      self.ss = self.xs
 
     ## Setup Pilot PLL
     self.pll = PLL(self.sfs, self.size, cuda=self.cuda)
@@ -53,6 +45,20 @@ class WBFM:
       "dc": collections.deque(maxlen=32),
       "diff": self.xp.array([0.0]),
     }
+
+  def load_modules(self, cuda):
+    self.cuda = cuda
+
+    if self.cuda:
+      self.xs = importlib.import_module('cusignal')
+      self.xp = importlib.import_module('cupy')
+      self.np = importlib.import_module('numpy')
+      self.ss = importlib.import_module('scipy.signal')
+    else:
+      self.xs = importlib.import_module('scipy.signal')
+      self.xp = importlib.import_module('numpy')
+      self.np = self.xp 
+      self.ss = self.xs
 
   def run(self, buff):
     b = self.xp.array(buff)

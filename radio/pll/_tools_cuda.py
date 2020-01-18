@@ -1,5 +1,4 @@
 import cupy as cp
-from numba import jit
 
 def frequency(x, fs):
   zeros = cp.where(cp.diff(cp.signbit(x)))[0]
