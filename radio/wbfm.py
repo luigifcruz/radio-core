@@ -67,7 +67,7 @@ class WBFM:
     b -= self.np.mean(self.co['dc'])
 
     # Synchronize PLL with Pilot
-    P = self.xs.lfilter(self.fi['pb'], self.fi['pa'], b)
+    P = self.xs.filtfilt(self.fi['pb'], self.fi['pa'], b)
     self.pll.step(P)
 
     # Demod Left + Right (LPR)
