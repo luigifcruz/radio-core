@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from radio.am import *
-from radio.wbfm import *
-from radio.mfm import *
-from radio.pll import *
+from radio.analog.am import *
+from radio.analog.wbfm import *
+from radio.analog.mfm import *

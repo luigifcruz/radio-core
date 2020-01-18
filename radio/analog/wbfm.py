@@ -3,15 +3,15 @@ from radio.pll import PLL
 import importlib
 
 class WBFM:
-  def __init__(self, tau, sfs, fs, size, cuda=False):
+  def __init__(self, tau, sfs, afs, size, cuda=False):
     ## Import Dynamic Modules
     self.load_modules(cuda)
 
     ## Variables to Self
     self.tau = tau
-    self.fs = fs
+    self.afs = afs
     self.sfs = sfs
-    self.dec = sfs/fs
+    self.dec = sfs/afs
     self.size = size
 
     ## Setup Pilot PLL
@@ -19,7 +19,7 @@ class WBFM:
     self.freq = self.pll.freq
 
     ## Setup Filters
-    x = self.np.exp(-1/(self.fs * self.tau))
+    x = self.np.exp(-1/(self.afs * self.tau))
     pb, pa = self.ss.butter(2, [19e3-200, 19e3+200], btype='band', fs=self.sfs)
     mb, ma = self.ss.butter(10, 15e3, btype='low', fs=self.sfs)
     hb, ha = self.ss.butter(2, 40, btype='high', fs=self.sfs)
@@ -83,7 +83,7 @@ class WBFM:
     LPR, self.zi['dlpr'] = self.xs.lfilter(self.fi['db'], self.fi['da'], LPR, zi=self.zi['dlpr'])
 
     # Demod Left - Right (LMR)
-    LMR = (self.pll.mult(2) * b) * 1.05
+    LMR = (self.pll.mult(2) * b) * 1.015
     LMR, self.zi['mlmr'] = self.xs.lfilter(self.fi['mb'], self.fi['ma'], LMR, zi=self.zi['mlmr'])
     LMR = self.xs.resample(LMR, int(self.size//self.dec), window='hamming')
     LMR, self.zi['dlmr'] = self.xs.lfilter(self.fi['db'], self.fi['da'], LMR, zi=self.zi['dlmr'])
