@@ -1,5 +1,5 @@
 import collections
-from radio.pll import PLL
+from radio.tools.pll import PLL
 import importlib
 
 class WBFM:
@@ -83,7 +83,7 @@ class WBFM:
     LPR, self.zi['dlpr'] = self.xs.lfilter(self.fi['db'], self.fi['da'], LPR, zi=self.zi['dlpr'])
 
     # Demod Left - Right (LMR)
-    LMR = (self.pll.mult(2) * b) * 1.015
+    LMR = (self.pll.mult(2) * b) * 1.02
     LMR, self.zi['mlmr'] = self.xs.lfilter(self.fi['mb'], self.fi['ma'], LMR, zi=self.zi['mlmr'])
     LMR = self.xs.resample(LMR, int(self.size//self.dec), window='hamming')
     LMR, self.zi['dlmr'] = self.xs.lfilter(self.fi['db'], self.fi['da'], LMR, zi=self.zi['dlmr'])

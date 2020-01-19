@@ -9,10 +9,10 @@ class PLL:
     if self.cuda:
       self.xp = importlib.import_module('cupy')
       self.np = importlib.import_module('numpy')
-      self.ts = importlib.import_module('radio.pll._tools_cuda')
+      self.ts = importlib.import_module('radio.tools.pll._core_cuda')
     else:
       self.xp = importlib.import_module('numpy')
-      self.ts = importlib.import_module('radio.pll._tools')
+      self.ts = importlib.import_module('radio.tools.pll._core_numba')
       self.np = self.xp 
 
     self.fs = fs
