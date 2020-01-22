@@ -91,12 +91,16 @@ class WBFM:
         LMR, self.zi['dlmr'] = self.xs.lfilter(self.fi['db'], self.fi['da'], LMR, zi=self.zi['dlmr'])
 
         # Mix L+R and L-R to generate L and R
-        L = LPR+LMR
-        R = LPR-LMR
+        L = (LPR+LMR) * 32767
+        R = (LPR-LMR) * 32767
 
         # Ensure Bounds
-        L = self.xp.clip(L, -1.0, 1.0)
-        R = self.xp.clip(R, -1.0, 1.0)
+        L = self.xp.clip(L, -32767, 32767)
+        R = self.xp.clip(R, -32767, 32767)
+
+        # Convert Data Type
+        L = L.astype(self.xp.int16)
+        R = R.astype(self.xp.int16)
 
         if self.cuda:
             return self.xp.asnumpy(L), self.xp.asnumpy(R)
