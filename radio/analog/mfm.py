@@ -56,10 +56,8 @@ class MFM:
         LPR = self.xs.resample_poly(b, 1, (self.sfs//self.afs), window='hamm')
         LPR, self.zi = self.xs.lfilter(self.db, self.da, LPR, zi=self.zi)
 
-        # Convert Data Type
-        LPR = LPR * 32767
-        LPR = self.xp.clip(LPR, -32767, 32767)
-        LPR = LPR.astype(self.xp.int16)
+        # Ensure Bounds
+        LPR = self.xp.clip(LPR, -1.0, 1.0)
 
         if self.cuda:
             return self.xp.asnumpy(LPR)
