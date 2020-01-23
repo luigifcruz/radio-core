@@ -3,18 +3,11 @@ import importlib
 
 
 class PLL:
-    def __init__(self, fs, length, cuda=False):
-        self.cuda = cuda
+    def __init__(self, fs, length, cuda=False, numba=False):
+        # Import Dynamic Modules
+        self.load_modules(cuda, numba)
 
-        if self.cuda:
-            self.xp = importlib.import_module('cupy')
-            self.np = importlib.import_module('numpy')
-            self.ts = importlib.import_module('radio.tools.pll._core_cuda')
-        else:
-            self.xp = importlib.import_module('numpy')
-            self.ts = importlib.import_module('radio.tools.pll._core_numba')
-            self.np = self.xp
-
+        # Variables to Self
         self.fs = fs
         self.freq = 0.0
         self.len = length
@@ -22,12 +15,30 @@ class PLL:
         self.algn = self.xp.arange(0, self.xp.pi*2, self.xp.pi/6)
         self.times = self.xp.arange(0, 1, 1/fs)[:self.len]
 
-        print("[PLL] Compiling Numba...")
+        # Compiling Functions
+        print("[PLL] Compiling Functions...")
         signal = self.wave(self.fs/4, 1.0)
         result = self.ts.frequency(signal, self.fs)
         phase = self.ts.alignment(signal, self.algn, self.fs/4, self.times)
         print("[PLL] Done ({}, {}, {})".format(
             self.fs/4, result, self.xp.argmax(phase)))
+
+    def load_modules(self, cuda, numba):
+        self.cuda = cuda
+        self.numba = numba
+
+        if self.cuda:
+            self.xp = importlib.import_module('cupy')
+            self.np = importlib.import_module('numpy')
+            self.ts = importlib.import_module('radio.tools.pll._core_cuda')
+        elif not self.numba:
+            self.xp = importlib.import_module('numpy')
+            self.ts = importlib.import_module('radio.tools.pll._core')
+            self.np = self.xp
+        else:
+            self.xp = importlib.import_module('numpy')
+            self.ts = importlib.import_module('radio.tools.pll._core_numba')
+            self.np = self.xp
 
     def wave(self, freq, phase):
         return self.xp.cos(2.0*self.xp.pi*freq*self.times+phase)

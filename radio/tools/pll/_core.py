@@ -1,15 +1,12 @@
 import numpy as np
-from numba import njit
 from typing import List
 
 
-@njit(fastmath=True)
 def frequency(x, fs) -> float:
     zeros = np.where(np.diff(np.signbit(x)))[0]
     return float(fs/np.mean(np.diff(zeros[5:-5]))/2)
 
 
-@njit(fastmath=True)
 def alignment(x, algn, freq, times) -> List[float]:
     err_ls = []
     for i in range(len(algn)):

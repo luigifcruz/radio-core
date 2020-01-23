@@ -5,9 +5,9 @@ import importlib
 
 class WBFM:
 
-    def __init__(self, tau, sfs, afs, size, cuda=False):
+    def __init__(self, tau, sfs, afs, size, cuda=False, numba=False):
         # Import Dynamic Modules
-        self.load_modules(cuda)
+        self.load_modules(cuda, numba)
 
         # Variables to Self
         self.tau = tau
@@ -48,8 +48,9 @@ class WBFM:
             "diff": self.xp.array([0.0]),
         }
 
-    def load_modules(self, cuda):
+    def load_modules(self, cuda, numba):
         self.cuda = cuda
+        self.numba = numba
 
         if self.cuda:
             self.xs = importlib.import_module('cusignal')
