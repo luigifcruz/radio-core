@@ -4,18 +4,21 @@ import importlib
 
 class MFM:
 
-    def __init__(self, tau, sfs, afs, cuda=False, numba=False):
+    def __init__(self, tau, ifs, ofs, cuda=False, numba=False):
         # Import Dynamic Modules
         self.load_modules(cuda, numba)
 
         # Variables to Self
         self.tau = tau
-        self.afs = afs
-        self.sfs = sfs
-        self.dec = sfs/afs
+        self.ifs = ifs
+        self.ofs = ofs
+        self.dec = int(self.ifs/self.ofs)
+
+        # Check Parameters
+        assert (self.ifs%self.ofs) == 0
 
         # Make De-emphasis Filter
-        x = self.np.exp(-1/(self.afs * self.tau))
+        x = self.np.exp(-1/(self.ofs * self.tau))
         self.db = [1-x]
         self.da = [1, -x]
         self.zi = self.ss.lfilter_zi(self.db, self.da)
@@ -54,7 +57,7 @@ class MFM:
         b -= self.np.mean(self.co['dc'])
 
         # Demod Left + Right (LPR)
-        LPR = self.xs.resample_poly(b, 1, (self.sfs//self.afs), window='hamm')
+        LPR = self.xs.resample_poly(b, 1, self.dec, window='hamm')
         LPR, self.zi = self.xs.lfilter(self.db, self.da, LPR, zi=self.zi)
 
         # Ensure Bounds

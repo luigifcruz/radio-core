@@ -5,26 +5,29 @@ import importlib
 
 class WBFM:
 
-    def __init__(self, tau, sfs, afs, size, cuda=False, numba=False):
+    def __init__(self, tau, ifs, ofs, isize, cuda=False, numba=False):
         # Import Dynamic Modules
         self.load_modules(cuda, numba)
 
         # Variables to Self
         self.tau = tau
-        self.afs = afs
-        self.sfs = sfs
-        self.dec = sfs/afs
-        self.size = size
+        self.ifs = ifs
+        self.ofs = ofs
+        self.dec = int(self.ifs/self.ofs)
+        self.isize = isize
+
+        # Check Parameters
+        assert (self.ifs%self.ofs) == 0
 
         # Setup Pilot PLL
-        self.pll = PLL(self.sfs, self.size, cuda=self.cuda)
+        self.pll = PLL(self.ifs, self.isize, cuda=self.cuda)
         self.freq = self.pll.freq
 
         # Setup Filters
-        x = self.np.exp(-1/(self.afs * self.tau))
-        pb, pa = self.ss.butter(2, [19e3-200, 19e3+200], btype='band', fs=self.sfs)
-        mb, ma = self.ss.butter(10, 15e3, btype='low', fs=self.sfs)
-        hb, ha = self.ss.butter(2, 40, btype='high', fs=self.sfs)
+        x = self.np.exp(-1/(self.ofs * self.tau))
+        pb, pa = self.ss.butter(2, [19e3-200, 19e3+200], btype='band', fs=self.ifs)
+        mb, ma = self.ss.butter(10, 15e3, btype='low', fs=self.ifs)
+        hb, ha = self.ss.butter(2, 40, btype='high', fs=self.ifs)
 
         self.fi = {
             "db": [1-x], "da": [1, -x],
@@ -82,13 +85,13 @@ class WBFM:
         # Demod Left + Right (LPR)
         LPR, self.zi['mlpr'] = self.xs.lfilter(self.fi['mb'], self.fi['ma'], b, zi=self.zi['mlpr'])
         LPR, self.zi['hlpr'] = self.xs.lfilter(self.fi['hb'], self.fi['ha'], LPR, zi=self.zi['hlpr'])
-        LPR = self.xs.resample(LPR, int(self.size//self.dec), window='hamming')
+        LPR = self.xs.resample_poly(LPR, 1, self.dec, window='hamm')
         LPR, self.zi['dlpr'] = self.xs.lfilter(self.fi['db'], self.fi['da'], LPR, zi=self.zi['dlpr'])
 
         # Demod Left - Right (LMR)
         LMR = (self.pll.mult(2) * b) * 1.02
         LMR, self.zi['mlmr'] = self.xs.lfilter(self.fi['mb'], self.fi['ma'], LMR, zi=self.zi['mlmr'])
-        LMR = self.xs.resample(LMR, int(self.size//self.dec), window='hamming')
+        LMR = self.xs.resample_poly(LMR, 1, self.dec, window='hamm')
         LMR, self.zi['dlmr'] = self.xs.lfilter(self.fi['db'], self.fi['da'], LMR, zi=self.zi['dlmr'])
 
         # Mix L+R and L-R to generate L and R
