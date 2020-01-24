@@ -17,7 +17,7 @@ class WBFM:
         self.isize = isize
 
         # Check Parameters
-        assert (self.ifs%self.ofs) == 0
+        assert (self.ifs % self.ofs) == 0
 
         # Setup Pilot PLL
         self.pll = PLL(self.ifs, self.isize, cuda=self.cuda)

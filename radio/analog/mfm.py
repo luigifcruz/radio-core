@@ -15,7 +15,7 @@ class MFM:
         self.dec = int(self.ifs/self.ofs)
 
         # Check Parameters
-        assert (self.ifs%self.ofs) == 0
+        assert (self.ifs % self.ofs) == 0
 
         # Make De-emphasis Filter
         x = self.np.exp(-1/(self.ofs * self.tau))
