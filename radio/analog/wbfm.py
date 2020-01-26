@@ -103,6 +103,7 @@ class WBFM:
         R = self.xp.clip(R, -1.0, 1.0)
 
         if self.cuda:
-            return self.xp.asnumpy(L), self.xp.asnumpy(R)
+            L = self.xp.asnumpy(L)
+            R = self.xp.asnumpy(R)
 
         return L, R
