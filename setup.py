@@ -4,7 +4,7 @@ import radio
 shortdesc = "Python based library for FM, AM and WBFM demodulation."
 
 setup(
-    name='radio',
+    name='radio-core',
     version=radio.__version__,
     description=shortdesc,
     url='https://github.com/luigifreitas/radio-core',
