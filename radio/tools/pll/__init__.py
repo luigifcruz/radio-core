@@ -12,7 +12,7 @@ class PLL:
         self.freq = 0.0
         self.len = length
         self.f_cb = collections.deque(maxlen=128)
-        self.algn = self.xp.arange(0, self.xp.pi*2, self.xp.pi/6)
+        self.algn = self.xp.arange(0, self.xp.pi*2, self.xp.pi/4)
         self.times = self.xp.arange(0, 1, 1/fs)[:self.len]
 
         # Compiling Functions

@@ -58,7 +58,14 @@ class MFM:
 
         # Demod Left + Right (LPR)
         LPR = self.xs.resample_poly(b, 1, self.dec, window='hamm')
-        LPR, self.zi = self.xs.lfilter(self.db, self.da, LPR, zi=self.zi)
+        
+        if self.cuda:
+            LPR = self.xp.asnumpy(LPR)
+
+        LPR, self.zi = self.ss.lfilter(self.db, self.da, LPR, zi=self.zi)
+
+        if self.cuda:
+            LPR = self.xp.asarray(LPR) 
 
         # Ensure Bounds
         LPR = self.xp.clip(LPR, -1.0, 1.0)

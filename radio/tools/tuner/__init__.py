@@ -40,14 +40,12 @@ class Tuner:
             self.np = importlib.import_module('numpy')
             self.ss = importlib.import_module('scipy.signal')
         else:
-            self.xs = importlib.import_module('scipy.signal')
-            self.xp = importlib.import_module('numpy')
-            self.np = self.xp
-            self.ss = self.xs
+            raise ValueError("Sorry, the Tuner function is only available"
+                             "with CUDA enabled at this time.")
 
     def load(self, buff):
-        self.b = self.xs.fft(self.xp.array(buff))
+        self.b = self.xp.fft.fft(self.xp.array(buff))
 
     def run(self, id):
         a = self.xp.roll(self.b, self.toff[id])
-        return self.xs.fft_resample(a, self.dfac[id], window='hamm')
+        return self.xs.resample(a, self.dfac[id], window='hamm', fft=True)
