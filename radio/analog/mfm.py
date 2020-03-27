@@ -1,6 +1,8 @@
 import collections
 import importlib
 
+from radio.tools.helpers import lfilter
+
 
 class MFM:
 
@@ -58,14 +60,7 @@ class MFM:
 
         # Demod Left + Right (LPR)
         LPR = self.xs.resample_poly(b, 1, self.dec, window='hamm')
-        
-        if self.cuda:
-            LPR = self.xp.asnumpy(LPR)
-
-        LPR, self.zi = self.ss.lfilter(self.db, self.da, LPR, zi=self.zi)
-
-        if self.cuda:
-            LPR = self.xp.asarray(LPR) 
+        LPR, self.zi = lfilter(self, self.db, self.da, LPR, zi=self.zi)
 
         # Ensure Bounds
         LPR = self.xp.clip(LPR, -1.0, 1.0)

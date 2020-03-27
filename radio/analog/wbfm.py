@@ -1,6 +1,8 @@
 import collections
-from radio.tools.pll import PLL
 import importlib
+
+from radio.tools.pll import PLL
+from radio.tools.helpers import lfilter, filtfilt
 
 
 class WBFM:
@@ -66,28 +68,6 @@ class WBFM:
             self.np = self.xp
             self.ss = self.xs
 
-    def _lfilter(self, b, a, x, zi):
-        if self.cuda:
-            x = self.xp.asnumpy(x)
-
-        x, zi = self.ss.lfilter(b, a, x, zi=zi)
-
-        if self.cuda:
-            x = self.xp.asarray(x)
-
-        return (x, zi)
-    
-    def _filtfilt(self, b, a, x):
-        if self.cuda:
-            x = self.xp.asnumpy(x)
-
-        x = self.ss.filtfilt(b, a, x)
-
-        if self.cuda:
-            x = self.xp.asarray(x)
-
-        return x
-
     def run(self, buff):
         b = self.xp.array(buff)
         d = self.xp.concatenate((self.co['diff'], self.xp.angle(b)), axis=None)
@@ -101,20 +81,20 @@ class WBFM:
         b -= self.np.mean(self.co['dc'])
 
         # Synchronize PLL with Pilot
-        P = self._filtfilt(self.fi['pb'], self.fi['pa'], b)
+        P = filtfilt(self, self.fi['pb'], self.fi['pa'], b)
         self.pll.step(P)
 
         # Demod Left + Right (LPR)
-        LPR, self.zi['mlpr'] = self._lfilter(self.fi['mb'], self.fi['ma'], b, zi=self.zi['mlpr'])
-        LPR, self.zi['hlpr'] = self._lfilter(self.fi['hb'], self.fi['ha'], LPR, zi=self.zi['hlpr'])
+        LPR, self.zi['mlpr'] = lfilter(self, self.fi['mb'], self.fi['ma'], b, zi=self.zi['mlpr'])
+        LPR, self.zi['hlpr'] = lfilter(self, self.fi['hb'], self.fi['ha'], LPR, zi=self.zi['hlpr'])
         LPR = self.xs.resample_poly(LPR, 1, self.dec, window='hamm')
-        LPR, self.zi['dlpr'] = self._lfilter(self.fi['db'], self.fi['da'], LPR, zi=self.zi['dlpr'])
+        LPR, self.zi['dlpr'] = lfilter(self, self.fi['db'], self.fi['da'], LPR, zi=self.zi['dlpr'])
 
         # Demod Left - Right (LMR)
         LMR = (self.pll.mult(2) * b) * 1.02
-        LMR, self.zi['mlmr'] = self._lfilter(self.fi['mb'], self.fi['ma'], LMR, zi=self.zi['mlmr'])
+        LMR, self.zi['mlmr'] = lfilter(self, self.fi['mb'], self.fi['ma'], LMR, zi=self.zi['mlmr'])
         LMR = self.xs.resample_poly(LMR, 1, self.dec, window='hamm')
-        LMR, self.zi['dlmr'] = self._lfilter(self.fi['db'], self.fi['da'], LMR, zi=self.zi['dlmr'])
+        LMR, self.zi['dlmr'] = lfilter(self, self.fi['db'], self.fi['da'], LMR, zi=self.zi['dlmr'])
 
         # Mix L+R and L-R to generate L and R
         L = LPR+LMR
