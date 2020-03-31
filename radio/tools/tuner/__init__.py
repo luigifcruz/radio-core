@@ -48,4 +48,4 @@ class Tuner:
 
     def run(self, id):
         a = self.xp.roll(self.b, self.toff[id])
-        return self.xs.resample(a, self.dfac[id], window='hamm', fft=True)
+        return self.xs.resample(a, self.dfac[id], window='hamm', domain="freq")
