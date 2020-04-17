@@ -48,9 +48,10 @@ class MFM:
 
     def run(self, buff):
         b = self.xp.array(buff)
-        d = self.xp.concatenate((self.co['diff'], self.xp.angle(b)), axis=None)
-        b = self.xp.diff(self.xp.unwrap(d))
-        self.co['diff'][0] = d[-1]
+        b = self.xp.angle(b)
+        b = self.xp.unwrap(b)
+        b = self.xp.diff(b)
+        b = self.xp.concatenate((b, self.xp.array([b[-1]])))
         b /= self.xp.pi
 
         # Normalize for DC
