@@ -28,7 +28,6 @@ class MFM:
         # Setup continuity data
         self.co = {
             "dc": collections.deque(maxlen=32),
-            "diff": self.xp.array([0.0]),
         }
 
     def load_modules(self, cuda, numba):
