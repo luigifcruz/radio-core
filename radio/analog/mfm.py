@@ -6,7 +6,7 @@ from radio.tools.helpers import lfilter
 
 class MFM:
 
-    def __init__(self, tau, ifs, ofs, cuda=False, numba=False):
+    def __init__(self, tau, ifs, ofs, isize, cuda=False, numba=False):
         # Import Dynamic Modules
         self.load_modules(cuda, numba)
 
@@ -15,6 +15,8 @@ class MFM:
         self.ifs = ifs
         self.ofs = ofs
         self.dec = int(self.ifs/self.ofs)
+        self.isize = isize
+        self.out = self.isize//self.dec
 
         # Check Parameters
         assert (self.ifs % self.ofs) == 0
