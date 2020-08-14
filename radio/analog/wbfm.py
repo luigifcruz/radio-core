@@ -102,8 +102,8 @@ class WBFM:
         R = LPR-LMR
 
         # Ensure Bounds
-        L = self.xp.clip(L, -1.0, 1.0)
-        R = self.xp.clip(R, -1.0, 1.0)
+        L = self.xp.clip(L, -0.99, 0.99)
+        R = self.xp.clip(R, -0.99, 0.99)
 
         if self.cuda:
             L = self.xp.asnumpy(L)
