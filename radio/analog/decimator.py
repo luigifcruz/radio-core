@@ -3,15 +3,13 @@ import importlib
 
 class Decimator:
 
-    def __init__(self, ifs, ofs, osize, cuda=False):
+    def __init__(self, ifs, ofs, cuda=False):
         # Import Dynamic Modules
         self.load_modules(cuda)
 
         # Variables to Self
-        self.osize = osize
-        self.ifs = ifs
-        self.ofs = ofs
-        self.dec = int(self.ifs/self.ofs)
+        self.out_size = -1
+        self.dec = ifs/ofs
 
         print("[DECIMATOR] Factor: {}".format(self.dec))
 
@@ -33,6 +31,9 @@ class Decimator:
         out = self.xp.array(buff)
 
         if self.dec > 1:
-            out = self.xs.resample_poly(out, 1, self.dec, window='hamm')
+            out = self.xs.resample_poly(out, 1, int(self.dec), window='hamm')
 
-        return self.xs.resample(out, self.osize, window='hamm')
+        if self.out_size == -1:
+            self.out_size = int(len(buff)/self.dec)
+
+        return self.xs.resample(out, self.out_size, window='hamm')
