@@ -1,6 +1,8 @@
 import collections
 import importlib
 
+from radio.tools.helpers import lfilter
+
 
 class MFM:
 
@@ -26,7 +28,6 @@ class MFM:
         # Setup continuity data
         self.co = {
             "dc": collections.deque(maxlen=32),
-            "diff": self.xp.array([0.0]),
         }
 
     def load_modules(self, cuda, numba):
@@ -46,9 +47,10 @@ class MFM:
 
     def run(self, buff):
         b = self.xp.array(buff)
-        d = self.xp.concatenate((self.co['diff'], self.xp.angle(b)), axis=None)
-        b = self.xp.diff(self.xp.unwrap(d))
-        self.co['diff'][0] = d[-1]
+        b = self.xp.angle(b)
+        b = self.xp.unwrap(b)
+        b = self.xp.diff(b)
+        b = self.xp.concatenate((b, self.xp.array([b[-1]])))
         b /= self.xp.pi
 
         # Normalize for DC
@@ -58,10 +60,10 @@ class MFM:
 
         # Demod Left + Right (LPR)
         LPR = self.xs.resample_poly(b, 1, self.dec, window='hamm')
-        LPR, self.zi = self.xs.lfilter(self.db, self.da, LPR, zi=self.zi)
+        LPR, self.zi = lfilter(self, self.db, self.da, LPR, zi=self.zi)
 
         # Ensure Bounds
-        LPR = self.xp.clip(LPR, -1.0, 1.0)
+        LPR = self.xp.clip(LPR, -0.99, 0.99)
 
         if self.cuda:
             return self.xp.asnumpy(LPR)
