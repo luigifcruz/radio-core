@@ -3,9 +3,10 @@ import importlib
 
 
 class PLL:
-    def __init__(self, fs, cuda=False, numba=False):
+
+    def __init__(self, fs, cuda=False):
         # Import Dynamic Modules
-        self.load_modules(cuda, numba)
+        self.load_modules(cuda)
 
         # Variables to Self
         self.fs = fs
@@ -14,15 +15,14 @@ class PLL:
         self.f_cb = collections.deque(maxlen=128)
         self.algn = self.xp.arange(0, self.xp.pi*2, self.xp.pi/4)
 
-    def load_modules(self, cuda, numba):
+    def load_modules(self, cuda):
         self.cuda = cuda
-        self.numba = numba
 
         if self.cuda:
             self.xp = importlib.import_module('cupy')
             self.np = importlib.import_module('numpy')
             self.ts = importlib.import_module('radio.tools.pll._core_cuda')
-        elif not self.numba:
+        else:
             self.xp = importlib.import_module('numpy')
             self.ts = importlib.import_module('radio.tools.pll._core')
             self.np = self.xp

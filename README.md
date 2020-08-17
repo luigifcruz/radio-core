@@ -1,6 +1,6 @@
 # 📔 radio-core
 ### Python based DSP for [CyberRadio](https://github.com/luigifreitas/CyberRadio) and [PyRadio](https://github.com/luigifreitas/PyRadio).
-Accelerated on the GPU with CUDA by [#cuSignal](https://github.com/rapidsai/cusignal) and on the CPU with [Numba](https://numba.pydata.org/) functions.
+Accelerated on the GPU with CUDA by [#cuSignal](https://github.com/rapidsai/cusignal).
 
 ## Features
 
