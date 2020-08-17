@@ -7,9 +7,9 @@ from radio.tools.helpers import lfilter, filtfilt
 
 class WBFM:
 
-    def __init__(self, tau, ifs, ofs, cuda=False, numba=False):
+    def __init__(self, tau, ifs, ofs, cuda=False):
         # Import Dynamic Modules
-        self.load_modules(cuda, numba)
+        self.load_modules(cuda)
 
         # Variables to Self
         self.tau = tau
@@ -48,9 +48,8 @@ class WBFM:
             "dc": collections.deque(maxlen=32),
         }
 
-    def load_modules(self, cuda, numba):
+    def load_modules(self, cuda):
         self.cuda = cuda
-        self.numba = numba
 
         if self.cuda:
             self.xs = importlib.import_module('cusignal')

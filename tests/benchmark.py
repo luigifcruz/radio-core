@@ -6,21 +6,20 @@ import numpy as np
 
 class AnalogTest:
     
-    def __init__(self, sfs, afs, mult, cuda, numba):
+    def __init__(self, sfs, afs, mult, cuda):
         super(AnalogTest, self).__init__()
         self.sfs = int(sfs)
         self.afs = int(afs)
         self.tau = 75e-6
         self.mult = int(mult)
         self.cuda = cuda
-        self.numba = numba
         self.number = 500
 
         self.sdr_buff = 1024
         self.dsp_buff = self.sdr_buff * self.mult
 
-        self.wbfm = WBFM(self.tau, self.sfs, self.afs, self.dsp_buff, cuda, numba)
-        self.mfm = MFM(self.tau, self.sfs, self.afs, cuda, numba)
+        self.wbfm = WBFM(self.tau, self.sfs, self.afs, cuda)
+        self.mfm = MFM(self.tau, self.sfs, self.afs, cuda)
 
         if self.cuda:
             import cusignal as sig
@@ -35,13 +34,13 @@ class AnalogTest:
         print('     {} scored: {} {}({})'.format(name, time, passed, allowance))
 
     def test(self):
-        print('#### Analog Benchmark (IFS: {}, OFS: {}, MULT: {}, CUDA: {}, NUMBA: {}):'
-              .format(self.sfs, self.afs, self.mult, self.cuda, self.numba))
+        print('#### Analog Benchmark (IFS: {}, OFS: {}, MULT: {}, CUDA: {}):'
+              .format(self.sfs, self.afs, self.mult, self.cuda))
         self.eval('self.wbfm.run(self.buff)', 'WBFM')
         self.eval('self.mfm.run(self.buff)', 'MFM')
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
-    AnalogTest(256e3, 32e3, 16, False, False).test()
-    AnalogTest(256e3, 32e3, 16, True, True).test()
-    AnalogTest(256e3, 32e3, 16, True, False).test()
+    AnalogTest(256e3, 32e3, 16, False).test()
+    AnalogTest(256e3, 32e3, 16, True).test()
+    AnalogTest(256e3, 32e3, 16, True).test()
