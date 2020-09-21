@@ -1,6 +1,5 @@
 import importlib
 
-
 class Tuner:
 
     def __init__(self, bands, osize, cuda=False):
@@ -9,6 +8,7 @@ class Tuner:
 
         # Variables to Self
         self.bands = bands
+        self.fft_size = -1
 
         # List Bands Boundaries
         los = self.xp.array([(b['freq'] - (b['bw']/2)) for b in self.bands])
@@ -41,14 +41,21 @@ class Tuner:
             self.xp = importlib.import_module('cupy')
             self.np = importlib.import_module('numpy')
             self.ss = importlib.import_module('scipy.signal')
+            self.xfp = importlib.import_module('cupyx.scipy.fftpack')
+            self.sfp = importlib.import_module('scipy.fftpack')
         else:
             self.xs = importlib.import_module('scipy.signal')
+            self.xfp = importlib.import_module('scipy.fftpack')
             self.xp = importlib.import_module('numpy')
             self.np = self.xp
             self.ss = self.xs
+            self.sfp = self.xfp
 
-    def load(self, buff):
-        self.b = self.xp.fft.fft(self.xp.array(buff))
+    def load(self, a):
+        a = self.xp.array(a)
+        if self.fft_size == -1:
+            self.fft_size = self.sfp.helper.next_fast_len(len(a))
+        self.b = self.xfp.fft(a, self.fft_size)
 
     def run(self, id):
         a = self.xp.roll(self.b, int(self.toff[id]))
