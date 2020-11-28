@@ -53,11 +53,9 @@ class Tuner:
 
     def load(self, a):
         a = self.xp.array(a)
-        if self.fft_size == -1:
-            self.fft_size = self.sfp.helper.next_fast_len(len(a))
-        self.b = self.xfp.fft(a, self.fft_size)
+        self.b = self.xfp.fft(a)
 
     def run(self, id):
         a = self.xp.roll(self.b, int(self.toff[id]))
-        a = self.xs.resample(a, self.dfac[id], window='hamm', domain="freq")
+        a = self.xs.resample(a, self.dfac[id], domain="freq")
         return a

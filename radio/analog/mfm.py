@@ -1,8 +1,6 @@
 import collections
 import importlib
 
-from radio.tools.helpers import lfilter
-
 
 class MFM:
 
@@ -20,10 +18,8 @@ class MFM:
         assert (self.ifs % self.ofs) == 0
 
         # Make De-emphasis Filter
-        x = self.np.exp(-1/(self.ofs * self.tau))
-        self.db = [1-x]
-        self.da = [1, -x]
-        self.zi = self.ss.lfilter_zi(self.db, self.da)
+        self.db, self.da = self.deemp()
+        self.zi = self.xs.lfilter_zi(self.db, self.da)
 
         # Setup continuity data
         self.co = {
@@ -44,6 +40,24 @@ class MFM:
             self.np = self.xp
             self.ss = self.xs
 
+    def nyq(self, freq_hz):
+        return (freq_hz / (0.5 * self.ifs))
+
+    def deemp(self):
+        lo = self.nyq(1.0 / (2 * self.np.pi * self.tau))
+        hi = self.nyq(15e3)
+        co = self.nyq(self.ifs/2)
+        ro = self.nyq(100)
+
+        octaves = self.np.log(hi / lo) / self.np.log(2)
+        att = self.np.power(10, -((6.0 * octaves)/10))
+
+        bounds = [0.0, lo, hi, hi+ro, co]
+        gain   = [1.0, 1.0, att, 0.0, 0.0]
+
+        taps = self.xs.firwin2(65, bounds, gain, window="hann")
+        return (taps, 1.0)
+
     def run(self, buff):
         b = self.xp.array(buff)
         b = self.xp.angle(b)
@@ -58,11 +72,11 @@ class MFM:
         b -= self.np.mean(self.co['dc'])
 
         # Demod Left + Right (LPR)
-        LPR = self.xs.resample_poly(b, 1, self.dec, window='hamm')
-        LPR, self.zi = lfilter(self, self.db, self.da, LPR, zi=self.zi)
+        LPR, self.zi = self.xs.lfilter(self.db, self.da, b, zi=self.zi)
+        LPR = self.xs.decimate(LPR, self.dec, zero_phase=True)
 
         # Ensure Bounds
-        LPR = self.xp.clip(LPR, -0.99, 0.99)
+        LPR = self.xp.clip(LPR, -0.999, 0.999)
 
         if self.cuda:
             return self.xp.asnumpy(LPR)

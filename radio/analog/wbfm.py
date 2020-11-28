@@ -2,8 +2,6 @@ import collections
 import importlib
 
 from radio.tools.pll import PLL
-from radio.tools.helpers import lfilter, filtfilt
-
 
 class WBFM:
 
@@ -25,28 +23,50 @@ class WBFM:
         self.freq = self.pll.freq
 
         # Setup Filters
-        x = self.np.exp(-1/(self.ofs * self.tau))
-        pb, pa = self.ss.butter(2, [19e3-200, 19e3+200], btype='band', fs=self.ifs)
-        mb, ma = self.ss.butter(8, 15e3, btype='low', fs=self.ifs)
-
+        afb, afa = self.deemp()
+        bfb, bfa = self.bandpass(23e3, 53e3)
+        pfb, pfa = self.bandpass(19e3-100, 19e3+100)
+        
         self.fi = {
-            "db": [1-x], "da": [1, -x],
-            "pb": pb, "pa": pa,
-            "mb": mb, "ma": ma,
+            "afb": afb, "afa": afa,
+            "bfb": bfb, "bfa": bfa,
+            "pfb": pfb, "pfa": pfa,
         }
 
         # Setup Filters Initial Conditions
         self.zi = {
-            "mlpr": self.ss.lfilter_zi(mb, ma),
-            "mlmr": self.ss.lfilter_zi(mb, ma),
-            "dlpr": self.ss.lfilter_zi(self.fi["db"], self.fi["da"]),
-            "dlmr": self.ss.lfilter_zi(self.fi["db"], self.fi["da"]),
+            "afr": self.xs.lfilter_zi(afb, afa),
+            "afl": self.xs.lfilter_zi(afb, afa),
         }
 
         # Setup continuity data
         self.co = {
             "dc": collections.deque(maxlen=32),
         }
+
+    def nyq(self, freq_hz):
+        return (freq_hz / (0.5 * self.ifs))
+
+    def deemp(self):
+        lo = self.nyq(1.0 / (2 * self.np.pi * self.tau))
+        hi = self.nyq(15e3)
+        co = self.nyq(self.ifs/2)
+        ro = self.nyq(100)
+
+        octaves = self.np.log(hi / lo) / self.np.log(2)
+        att = self.np.power(10, -((6.0 * octaves)/10))
+
+        bounds = [0.0, lo, hi, hi+ro, co]
+        gain   = [1.0, 1.0, att, 0.0, 0.0]
+
+        taps = self.xs.firwin2(65, bounds, gain, window="hann")
+        return (taps, 1.0)
+
+    def bandpass(self, lowcut, highcut):
+        lo = self.nyq(lowcut)
+        hi = self.nyq(highcut)
+        tp = self.xs.firwin(33, [lo, hi], pass_zero=False, window="hann")
+        return (tp, 1.0)
 
     def load_modules(self, cuda):
         self.cuda = cuda
@@ -76,27 +96,26 @@ class WBFM:
         b -= self.np.mean(self.co['dc'])
 
         # Synchronize PLL with Pilot
-        P = filtfilt(self, self.fi['pb'], self.fi['pa'], b)
+        P = self.xs.filtfilt(self.fi['pfb'], self.fi['pfa'], b)
         self.pll.step(P)
 
         # Demod Left + Right (LPR)
-        LPR, self.zi['mlpr'] = lfilter(self, self.fi['mb'], self.fi['ma'], b, zi=self.zi['mlpr'])
-        LPR = self.xs.resample_poly(LPR, 1, self.dec, window='hamm')
-        LPR, self.zi['dlpr'] = lfilter(self, self.fi['db'], self.fi['da'], LPR, zi=self.zi['dlpr'])
+        LPR, self.zi['afl'] = self.xs.lfilter(self.fi['afb'], self.fi['afa'], b, zi=self.zi['afl'])
+        LPR = self.xs.decimate(LPR, self.dec, zero_phase=True) 
 
         # Demod Left - Right (LMR)
-        LMR = (self.pll.mult(2) * b) * 1.0175
-        LMR, self.zi['mlmr'] = lfilter(self, self.fi['mb'], self.fi['ma'], LMR, zi=self.zi['mlmr'])
-        LMR = self.xs.resample_poly(LMR, 1, self.dec, window='hamm')
-        LMR, self.zi['dlmr'] = lfilter(self, self.fi['db'], self.fi['da'], LMR, zi=self.zi['dlmr'])
+        LMR = self.xs.filtfilt(self.fi['bfb'], self.fi['bfa'], b)
+        LMR = (self.pll.mult(2) * LMR) * 0.0175
+        LMR, self.zi['afr'] = self.xs.lfilter(self.fi['afb'], self.fi['afa'], LMR, zi=self.zi['afr'])
+        LMR = self.xs.decimate(LMR, self.dec, zero_phase=True)
 
         # Mix L+R and L-R to generate L and R
-        L = LPR+LMR
-        R = LPR-LMR
+        L = LPR + LMR
+        R = LPR - LMR
 
         # Ensure Bounds
-        L = self.xp.clip(L, -0.99, 0.99)
-        R = self.xp.clip(R, -0.99, 0.99)
+        L = self.xp.clip(L, -0.999, 0.999)
+        R = self.xp.clip(R, -0.999, 0.999)
 
         if self.cuda:
             L = self.xp.asnumpy(L)
