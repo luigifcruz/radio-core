@@ -9,6 +9,6 @@ setup(
     description=shortdesc,
     url='https://github.com/luigifreitas/radio-core',
     packages=find_packages(),
-    author='Luigi F. Cruz',
+    author='Luigi Cruz',
     include_package_data=True
 )
