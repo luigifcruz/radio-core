@@ -13,8 +13,11 @@ Accelerated on the GPU with CUDA by [#cuSignal](https://github.com/rapidsai/cusi
 - **Tuner**: Fast combo-tuning of wideband signals using FFT, IFFT, and polyphase-decimation.
 
 ## Installation
+To enable GPU acceleration, make sure to install [Cupy](https://docs.cupy.dev/en/stable/install.html) and
+[cuSignal](https://github.com/rapidsai/cusignal#installation) first.
+
 ```
-$ pip3 install git+https://github.com/luigifreitas/radio-core.git
+$ python -m pip install git+https://github.com/luigifreitas/radio-core.git
 ```
 
 ## Hacking
@@ -22,7 +25,6 @@ If you are interested in the core DSP, you are in the right place! If you want t
 
 ## Roadmap
 This is a list of unfinished tasks that I pretend to pursue soon. Pull requests are more than welcome!
-- [ ] Improving documentation.
-- [ ] Fix Tuner decimation for lists with varying sample-rates.
+- [ ] Improve documentation.
+- [ ] Improve PLL implementation.
 - [ ] Implement RDS Decoder.
-- [ ] Deploy on PIP.
