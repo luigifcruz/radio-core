@@ -21,11 +21,6 @@ class MFM:
         self.db, self.da = self.deemp()
         self.zi = self.xs.lfilter_zi(self.db, self.da)
 
-        # Setup continuity data
-        self.co = {
-            "dc": collections.deque(maxlen=32),
-        }
-
     def load_modules(self, cuda):
         self.cuda = cuda
 
@@ -65,11 +60,6 @@ class MFM:
         b = self.xp.diff(b)
         b = self.xp.concatenate((b, self.xp.array([b[-1]])))
         b /= self.xp.pi
-
-        # Normalize for DC
-        dc = self.xp.mean(b)
-        self.co['dc'].append(dc)
-        b -= self.np.mean(self.co['dc'])
 
         # Demod Left + Right (LPR)
         LPR, self.zi = self.xs.lfilter(self.db, self.da, b, zi=self.zi)

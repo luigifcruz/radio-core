@@ -20,13 +20,12 @@ class WBFM:
 
         # Setup Pilot PLL
         self.pll = PLL(self.ifs, cuda=self.cuda)
-        self.freq = self.pll.freq
 
         # Setup Filters
         afb, afa = self.deemp()
         bfb, bfa = self.bandpass(23e3, 53e3)
         pfb, pfa = self.bandpass(19e3-100, 19e3+100)
-        
+
         self.fi = {
             "afb": afb, "afa": afa,
             "bfb": bfb, "bfa": bfa,
@@ -37,11 +36,6 @@ class WBFM:
         self.zi = {
             "afr": self.xs.lfilter_zi(afb, afa),
             "afl": self.xs.lfilter_zi(afb, afa),
-        }
-
-        # Setup continuity data
-        self.co = {
-            "dc": collections.deque(maxlen=32),
         }
 
     def nyq(self, freq_hz):
@@ -90,18 +84,13 @@ class WBFM:
         b = self.xp.concatenate((b, self.xp.array([b[-1]])))
         b /= self.xp.pi
 
-        # Normalize for DC
-        dc = self.xp.mean(b)
-        self.co['dc'].append(dc)
-        b -= self.np.mean(self.co['dc'])
-
         # Synchronize PLL with Pilot
         P = self.xs.filtfilt(self.fi['pfb'], self.fi['pfa'], b)
         self.pll.step(P)
 
         # Demod Left + Right (LPR)
         LPR, self.zi['afl'] = self.xs.lfilter(self.fi['afb'], self.fi['afa'], b, zi=self.zi['afl'])
-        LPR = self.xs.decimate(LPR, self.dec, zero_phase=True) 
+        LPR = self.xs.decimate(LPR, self.dec, zero_phase=True)
 
         # Demod Left - Right (LMR)
         LMR = self.xs.filtfilt(self.fi['bfb'], self.fi['bfa'], b)
