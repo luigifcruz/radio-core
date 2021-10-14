@@ -55,6 +55,8 @@ class PLL:
         norm = self.xp.linalg.norm(self.reference) * self.xp.linalg.norm(x)
         self.phi = self.xp.arccos(dot / norm)
 
+        # TODO: fix the 90deg phase ambiguity
+
 
     def mult(self, mult=1.0):
         return self.wave(mult, self.phi)

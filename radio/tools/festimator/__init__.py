@@ -3,7 +3,7 @@ import importlib
 
 # Source: https://gist.github.com/endolith/255291
 
-class FFT():
+class FFT:
 
 
     def __init__(self, fs, cuda=False):

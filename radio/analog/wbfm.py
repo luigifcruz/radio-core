@@ -77,7 +77,7 @@ class WBFM:
             self.ss = self.xs
 
     def run(self, buff):
-        b = self.xp.array(buff)
+        b = self.xp.array(buff, copy=False)
         b = self.xp.angle(b)
         b = self.xp.unwrap(b)
         b = self.xp.diff(b)

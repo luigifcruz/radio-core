@@ -1,6 +1,8 @@
 import importlib
 
+
 class Tuner:
+
 
     def __init__(self, bands, osize, cuda=False):
         # Import Dynamic Modules
@@ -33,6 +35,7 @@ class Tuner:
         self.foff = [b['freq'] - self.mdf for b in self.bands]
         self.toff = [-(self.size*f)/self.bw for f in self.foff]
 
+
     def load_modules(self, cuda):
         self.cuda = cuda
 
@@ -51,9 +54,11 @@ class Tuner:
             self.ss = self.xs
             self.sfp = self.xfp
 
+
     def load(self, a):
         a = self.xp.array(a)
         self.b = self.xfp.fft(a)
+
 
     def run(self, id):
         a = self.xp.roll(self.b, int(self.toff[id]))

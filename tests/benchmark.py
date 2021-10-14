@@ -5,7 +5,7 @@ import numpy as np
 
 
 class AnalogTest:
-    
+
     def __init__(self, sfs, afs, mult, cuda):
         super(AnalogTest, self).__init__()
         self.sfs = int(sfs)
@@ -42,5 +42,4 @@ class AnalogTest:
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     AnalogTest(256e3, 32e3, 16, False).test()
-    AnalogTest(256e3, 32e3, 16, True).test()
     AnalogTest(256e3, 32e3, 16, True).test()
