@@ -14,12 +14,12 @@ class Tuner(Injector):
 
     def __init__(self, bands, osize, cuda=False):
         self._cuda = cuda
+        self._bands = []
 
         super().__init__(self._cuda)
 
         # Variables to Self
         self.bands = bands
-        self.fft_size = -1
 
         # List Bands Boundaries
         los = self._xp.array([(b['freq'] - (b['bw']/2)) for b in self.bands])
@@ -45,10 +45,10 @@ class Tuner(Injector):
         self.toff = [-(self.size*f)/self.bwt for f in self.foff]
 
     def load(self, a):
-        a = self.xp.array(a)
-        self.b = self.xfp.fft(a)
+        a = self._xp.array(a)
+        self.b = self._xp.fft.fft(a)
 
     def run(self, id):
-        a = self.xp.roll(self.b, int(self.toff[id]))
-        a = self.xs.resample(a, self.dfac[id], domain="freq")
+        a = self._xp.roll(self.b, int(self.toff[id]))
+        a = self._xs.resample(a, self.dfac[id], domain="freq")
         return a
