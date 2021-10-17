@@ -1,0 +1,30 @@
+"""Defines a PLL module."""
+
+from radio._internal import Injector
+
+
+class PLL(Injector):
+    """
+    The PLL class creates a phase-locked signal from an input signal.
+
+    This is usefull to change the frequency of a pilot signal.
+    This class is based in the Hilbert transform.
+
+    Attributes
+    ----------
+    cuda : bool, optional
+        use the GPU for processing  (default is False)
+    """
+
+    def __init__(self, cuda=False):
+        self._cuda = cuda
+        self._baseline = None
+        super().__init__(self._cuda)
+
+    def step(self, input_sig):
+        """Updates the internal state according to the input_sig (arr)."""
+        self._baseline = self._xs.hilbert(input_sig)
+
+    def wave(self, mult=1.0):
+        """Returns the phase-locked signal with the frequency multiplied by mult."""
+        return self._xp.real(self._baseline**mult)

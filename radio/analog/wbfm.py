@@ -1,7 +1,6 @@
-import collections
 import importlib
 
-from radio.tools.pll import PLL
+from radio.analog.pll import PLL
 
 class WBFM:
 
@@ -19,7 +18,7 @@ class WBFM:
         assert (self.ifs % self.ofs) == 0
 
         # Setup Pilot PLL
-        self.pll = PLL(self.ifs, cuda=self.cuda)
+        self.pll = PLL(cuda=self.cuda)
 
         # Setup Filters
         afb, afa = self.deemp()
@@ -36,6 +35,7 @@ class WBFM:
         self.zi = {
             "afr": self.xs.lfilter_zi(afb, afa),
             "afl": self.xs.lfilter_zi(afb, afa),
+            "pfb": self.xs.lfilter_zi(pfb, pfa),
         }
 
     def nyq(self, freq_hz):
@@ -85,7 +85,7 @@ class WBFM:
         b /= self.xp.pi
 
         # Synchronize PLL with Pilot
-        P = self.xs.filtfilt(self.fi['pfb'], self.fi['pfa'], b)
+        P, self.zi['pfb'] = self.xs.lfilter(self.fi['pfb'], self.fi['pfa'], b, zi=self.zi['pfb'])
         self.pll.step(P)
 
         # Demod Left + Right (LPR)
@@ -94,13 +94,17 @@ class WBFM:
 
         # Demod Left - Right (LMR)
         LMR = self.xs.filtfilt(self.fi['bfb'], self.fi['bfa'], b)
-        LMR = (self.pll.mult(2) * LMR) * 0.0175
+        LMR = (self.pll.wave(2) * LMR) * 1.0175
         LMR, self.zi['afr'] = self.xs.lfilter(self.fi['afb'], self.fi['afa'], LMR, zi=self.zi['afr'])
         LMR = self.xs.decimate(LMR, self.dec, zero_phase=True)
 
         # Mix L+R and L-R to generate L and R
         L = LPR + LMR
         R = LPR - LMR
+
+        # Remove DC from signal.
+        L -= self.xp.mean(L)
+        R -= self.xp.mean(R)
 
         # Ensure Bounds
         L = self.xp.clip(L, -0.999, 0.999)
