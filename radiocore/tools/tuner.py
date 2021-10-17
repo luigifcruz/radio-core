@@ -1,6 +1,6 @@
 """Defines a Chopper module."""
 
-from radio._internal import Injector
+from radiocore._internal import Injector
 
 
 class Tuner(Injector):

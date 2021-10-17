@@ -3,7 +3,7 @@
 import threading
 
 from contextlib import contextmanager
-from radio._internal import Injector
+from radiocore._internal import Injector
 
 
 class Buffer(Injector):

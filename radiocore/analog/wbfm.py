@@ -1,6 +1,6 @@
 import importlib
 
-from radio.analog.pll import PLL
+from radiocore.analog.pll import PLL
 
 class WBFM:
 

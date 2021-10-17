@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from radio.tools import Buffer
+from radiocore import Buffer
 
 
 def test_buffer():

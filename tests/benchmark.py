@@ -1,5 +1,5 @@
 from timeit import timeit
-from radio.analog import WBFM, MFM
+from radiocore import WBFM, MFM
 import warnings
 import numpy as np
 

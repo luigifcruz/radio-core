@@ -1,6 +1,6 @@
 """Defines a PLL module."""
 
-from radio._internal import Injector
+from radiocore._internal import Injector
 
 
 class PLL(Injector):

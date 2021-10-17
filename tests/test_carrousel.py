@@ -1,6 +1,6 @@
 """Carrousel test."""
 
-from radio import Carrousel
+from radiocore import Carrousel
 
 
 def test_carrousel():
