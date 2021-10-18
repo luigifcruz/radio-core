@@ -22,8 +22,8 @@ reportGeneralTypeIssues = false
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
-numpy = "^1.21.2"
-scipy = "^1.7.1"
+numpy = "^1.19"
+scipy = "^1.5"
 cupy = {version = "^9.5.0", extras = ["CUDA"]}
 
 [tool.poetry.dev-dependencies]
