@@ -5,8 +5,7 @@ import importlib
 
 class Injector:
     """
-    The Injector internal class ynamically loads and injects the supported
-    modules into self.
+    The Injector class dynamically loads and injects the modules into self.
 
     Attributes
     ----------
@@ -15,6 +14,7 @@ class Injector:
     """
 
     def __init__(self, cuda=False):
+        """Initialize the Injector class."""
         if cuda:
             self._xs = importlib.import_module('cusignal')
             self._xp = importlib.import_module('cupy')

@@ -1,4 +1,4 @@
-"""Imports all modules from radiocore"""
+"""Imports all modules from radiocore."""
 
 from radiocore.analog import *
 from radiocore.tools import *

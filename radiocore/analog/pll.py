@@ -17,14 +17,15 @@ class PLL(Injector):
     """
 
     def __init__(self, cuda=False):
+        """Initialize the PLL class."""
         self._cuda = cuda
         self._baseline = None
         super().__init__(self._cuda)
 
     def step(self, input_sig):
-        """Updates the internal state according to the input_sig (arr)."""
+        """Update the internal state according to the input_sig (arr)."""
         self._baseline = self._xs.hilbert(input_sig)
 
     def wave(self, mult=1.0):
-        """Returns the phase-locked signal with the frequency multiplied by mult."""
+        """Return the phase-locked signal with the frequency multiplied by mult."""
         return self._xp.real(self._baseline**mult)

@@ -17,15 +17,16 @@ class Chopper:
     """
 
     def __init__(self, size: int, chunk_size: int):
+        """Initialize the Chopper class."""
         self._size = size
         self._chunk_size = chunk_size
 
         if (self._size % self._chunk_size) != 0:
-            raise ValueError('cannot evenly divide array by chunk size')
+            raise ValueError("cannot evenly divide array by chunk size")
 
     def chop(self, input_arr):
         """
-        Returns an array of references to the original memory each with the set size.
+        Return an array of references to the original memory each with the set size.
 
         Parameters
         ----------

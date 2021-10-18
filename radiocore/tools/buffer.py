@@ -1,8 +1,8 @@
 """Defines a Buffer module."""
 
 import threading
-
 from contextlib import contextmanager
+
 from radiocore._internal import Injector
 
 
@@ -26,6 +26,7 @@ class Buffer(Injector):
     """
 
     def __init__(self, size: int, dtype: str, lock: bool = True, cuda: bool = False):
+        """Initialize the Buffer class."""
         self._lock = lock
         self._cuda = cuda
         self._dtype = dtype
@@ -43,32 +44,33 @@ class Buffer(Injector):
 
     @property
     def dtype(self):
-        """Returns the dtype of the array."""
+        """Return the dtype of the array."""
         return self._buffer.dtype
 
     @property
     def is_cuda(self) -> bool:
-        """Returns if the array is allocated in the GPU memory."""
+        """Return if the array is allocated in the GPU memory."""
         return self._cuda
 
     @property
     def size(self) -> int:
-        """Returns the size of the array."""
+        """Return the size of the array."""
         return self._size
 
     @property
     def is_locked(self) -> bool:
-        """Returns if the array is currently in use."""
+        """Return if the array is currently in use."""
         if not self._lock:
-            raise ValueError('locking is not enabled in this instance')
+            raise ValueError("locking is not enabled in this instance")
         return self._mtx.locked()
 
     @contextmanager
     def consume(self):
         """
-        Returns a handle of the original array memory. When lock is enabled,
-        it will also restrict the access to this resource until the original
-        caller is done.
+        Return a handle of the original array memory.
+
+        When lock is enabled, it will also restrict the access to this
+        resource until the original caller is done.
         """
         try:
             if self._lock:

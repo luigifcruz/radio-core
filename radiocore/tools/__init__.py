@@ -1,4 +1,4 @@
-"""Imports all modules from radio.tools"""
+"""Imports all modules from radio.tools."""
 
 from radiocore.tools.tuner import *
 from radiocore.tools.buffer import *

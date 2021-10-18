@@ -29,3 +29,9 @@ cupy = {version = "^9.5.0", optional = true}
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
 Sphinx = "^4.2.0"
+flake8 = "^4.0.1"
+pep8-naming = "^0.12.1"
+flake8-builtins = "^1.5.3"
+flake8-import-order = "^0.18.1"
+flake8-docstrings = "^1.6.0"
+flake8-black = "^0.2.3"

@@ -1,7 +1,7 @@
+import numpy as np
 from timeit import timeit
 from radiocore import WBFM, MFM
 import warnings
-import numpy as np
 
 
 class AnalogTest:
