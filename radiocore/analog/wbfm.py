@@ -61,7 +61,7 @@ class WBFM(Injector):
     def bandpass(self, lowcut, highcut):
         lo = self.nyq(lowcut)
         hi = self.nyq(highcut)
-        tp = self._xs.firwin(33, [lo, hi], pass_zero=False, window="hann")
+        tp = self._xs.firwin(51, [lo, hi], pass_zero=False, window="hann")
         return (tp, 1.0)
 
     def run(self, buff):
