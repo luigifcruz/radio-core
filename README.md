@@ -11,13 +11,17 @@ Accelerated on the GPU with CUDA by [#cuSignal](https://github.com/rapidsai/cusi
 ### Tools
 - **PLL**: Clock-recovery and phase estimation for real signals.
 - **Tuner**: Fast combo-tuning of wideband signals using FFT, IFFT, and polyphase-decimation.
+- **Carrousel**: Zero copy circular buffer implemented in Python.
+- **Buffer**: Array allocated in the GPU or CPU.
 
 ## Installation
-To enable GPU acceleration, make sure to install [Cupy](https://docs.cupy.dev/en/stable/install.html) and
-[cuSignal](https://github.com/rapidsai/cusignal#installation) first.
-
+### CPU
 ```
-$ python -m pip install git+https://github.com/luigifreitas/radio-core.git
+$ python -m pip install git+https://github.com/luigifcruz/radio-core.git
+```
+### GPU (CUDA)
+```
+$ python -m pip install git+https://github.com/luigifcruz/radio-core.git#egg=radiocore[cuda]
 ```
 
 ## Hacking

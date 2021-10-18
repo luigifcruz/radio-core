@@ -86,7 +86,7 @@ class Carrousel:
     def read(self):
         """Return the reference of an item to be read."""
         if self.is_empty:
-            raise ValueError('carrousel is empty')
+            raise ValueError("carrousel is empty")
 
         _idx = self._head
         self._occupancy -= 1
