@@ -1,5 +1,7 @@
 """Defines a Carrousel module."""
 
+from contextlib import contextmanager
+
 
 class Carrousel:
     """
@@ -8,6 +10,8 @@ class Carrousel:
     The operation of this class is similar to the collections.Queue.
     But unlike it, this class doesn't discard the element after its poped.
     This is more efficient, specially if using GPU memory.
+
+    This class doesn't support multiple producers.
 
     Attributes
     ----------
@@ -22,7 +26,7 @@ class Carrousel:
         self._items = items
         self._head = 0
         self._tail = 0
-        self._overflows = 0
+        self._overflow = 0
         self._occupancy = 0
         self._capacity = len(self._items)
         self._print_overflow = print_overflow
@@ -48,9 +52,9 @@ class Carrousel:
         return self.occupancy >= self.capacity
 
     @property
-    def overflows(self) -> int:
+    def overflow(self) -> int:
         """Return the number of overflows since the instantiation."""
-        return self._overflows
+        return self._overflow
 
     @property
     def is_healthy(self) -> bool:
@@ -59,7 +63,7 @@ class Carrousel:
 
         It's considered healthy if there is two or more items in use.
         """
-        return self.occupancy >= 2
+        return self.occupancy >= 1
 
     def reset(self):
         """Reset class to the initial state."""
@@ -71,19 +75,24 @@ class Carrousel:
         """Return the data inside the buffer in string format."""
         return self._items.__str__()
 
-    def write(self):
+    @contextmanager
+    def enqueue(self):
         """Return the reference of an item to be written into."""
         if self.is_full:
+            self._overflow += 1
+            self._occupancy -= 1
+            self._head = (self._head + 1) % self.capacity
+
             if self._print_overflow:
                 print("overflow")
-            self.reset()
 
-        _idx = self._tail
-        self._occupancy += 1
-        self._tail = (self._tail + 1) % self.capacity
-        return self._items[_idx]
+        try:
+            yield self._items[self._tail]
+        finally:
+            self._occupancy += 1
+            self._tail = (self._tail + 1) % self.capacity
 
-    def read(self):
+    def dequeue(self):
         """Return the reference of an item to be read."""
         if self.is_empty:
             raise ValueError("carrousel is empty")
