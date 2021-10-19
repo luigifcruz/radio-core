@@ -3,7 +3,7 @@
 
 class Chopper:
     """
-    The Copper class is a helper tool to divide a big array into smaller chunks.
+    The Copper class is a helper to divide a big array into smaller chunks.
 
     It's usefull when you need to populate an array used for processing with
     smaller arrays.
@@ -22,11 +22,12 @@ class Chopper:
         self._chunk_size = chunk_size
 
         if (self._size % self._chunk_size) != 0:
-            raise ValueError("cannot evenly divide array by chunk size")
+            raise ValueError("cannot evenly divide array by chunk size "
+                             f"({self._size}, {self._chunk_size})")
 
     def chop(self, input_arr):
         """
-        Return an array of references to the original memory each with the set size.
+        Return a reference to the bigger array's original memory.
 
         Parameters
         ----------

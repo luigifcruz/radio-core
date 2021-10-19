@@ -1,54 +1,153 @@
-"""Defines a Chopper module."""
+"""Defines a Tuner module."""
+
+from dataclasses import dataclass
 
 from radiocore._internal import Injector
 
 
-class Tuner(Injector):
+@dataclass
+class Channel:
     """
-    The Tuner class implements a variable bandwidth channelizer.
+    The Channel class holds frequency boundaries and other related data.
 
     Attributes
     ----------
-    bands : dict
+    lower_frequency : float
+        lower frequency boundary of the channel
+    center_frequency : float
+        center frequency of the channel
+    higher_frequency : float
+        higher frequency boundary of the channel
+    bandwidth : float
+        bandwidth of the channel
     """
 
-    def __init__(self, bands, osize, cuda=False):
-        self._cuda = cuda
-        self._bands = []
+    lower_frequency: float = 0.0
+    center_frequency: float = 0.0
+    higher_frequency: float = 0.0
+    bandwidth: float = 0.0
 
+
+class Tuner(Injector):
+    """
+    The Tuner class channelizes the input data into channels.
+
+    The operation of this class assumes that the input signal
+    is arranged in one second chunks. This class is based on a
+    FFT, a resampler, and a IFFT. It's quite fast in the GPU.
+
+    Attributes
+    ----------
+    cuda : bool
+        use the GPU for processing  (default is False)
+    """
+
+    def __init__(self, cuda: bool = False):
+        """Initialize the Tuner class."""
+        self._cuda = cuda
         super().__init__(self._cuda)
 
-        # Variables to Self
-        self.bands = bands
+        self._buffer = None
+        self._input_frequency: int = 0.0
+        self._input_bandwidth: int = 0.0
+        self._bounds: Channel = []
 
-        # List Bands Boundaries
-        los = self._xp.array([(b['freq'] - (b['bw']/2)) for b in self.bands])
-        his = self._xp.array([(b['freq'] + (b['bw']/2)) for b in self.bands])
+    @property
+    def input_frequency(self) -> float:
+        """Return the center frequency of the input data."""
+        return self._input_frequency
 
-        # Get Bands Boundaries
-        self.lof = self._xp.min(los)
-        self.hif = self._xp.max(his)
+    @property
+    def input_bandwidth(self) -> float:
+        """Return the bandwidth of the input data."""
+        return self._input_bandwidth
 
-        # Get Bandwidth and Center Frequency
-        self.bwt = float(self.hif-self.lof)
-        self.bwt += self.bands[0]['bw']-(self.bwt % self.bands[0]['bw'])
-        self.mdf = float((self.lof+self.hif)/2.0)
+    def request_bandwidth(self, bandwidth: float):
+        """
+        Override the calculated bandwidth.
 
-        # Get Size
-        self.size = int(osize*(self.bwt//self.bands[0]['bw']))
+        The desired bandwidth should be greater than the original. The
+        value set by this method will be overridden if add_channel is
+        called afterward.
 
-        # List Decimation Factor
-        self.dfac = [int(self.size/(self.bwt//b['bw'])) for b in self.bands]
+        Attributes
+        ----------
+        bandwidth : float
+            desired bandwidth
+        """
+        if bandwidth >= self._input_bandwidth:
+            self._input_bandwidth = bandwidth
+        raise ValueError("requested bandwidth is too low, minimum "
+                         f"is {self._input_bandwidth}")
 
-        # List Frequency & FFT Offset
-        self.foff = [b['freq'] - self.mdf for b in self.bands]
-        self.toff = [-(self.size*f)/self.bwt for f in self.foff]
+    def add_channel(self, frequency: float, bandwidth: float):
+        """
+        Register a new channel to be processed.
 
-    def load(self, a):
-        a = self._xp.array(a)
-        self.b = self._xp.fft.fft(a)
+        This call recalculates all parameters.
 
-    def run(self, id):
-        a = self._xp.roll(self.b, int(self.toff[id]))
-        a = self._xs.resample(a, self.dfac[id], domain="freq")
-        return a
+        Attributes
+        ----------
+        frequency : float
+            output channel center frequency
+        bandwidth : float
+            output channel bandwidth
+        """
+        self._bounds.append(Channel(
+            lower_frequency=(frequency - (bandwidth / 2)),
+            center_frequency=frequency,
+            higher_frequency=(frequency + (bandwidth / 2)),
+            bandwidth=bandwidth
+        ))
+        self.__recalculate()
+
+    def reset(self):
+        """Reset the state of the Tuner."""
+        self._bounds = []
+        self.__recalculate()
+
+    def load(self, input_signal):
+        """
+        Pre-process the input data.
+
+        This method should be called in advance of run().
+
+        Attributes
+        ----------
+        input_signal : arr
+            input signal buffer with one second worth of samples
+        """
+        _tmp = self._xp.asarray(input_signal)
+        self._buffer = self._xp.fft.fft(_tmp)
+
+    def run(self, channel_index: int):
+        """
+        Return the channelized signal.
+
+        This method should be called after load().
+
+        Attributes
+        ----------
+        channel_index : int
+            index of the channel
+        """
+        _channel = self._bounds[channel_index]
+        _roll_factor = self._input_frequency - _channel.center_frequency
+        _resample_factor = int(_channel.bandwidth)
+
+        _tmp = self._xp.roll(self._buffer, _roll_factor)
+        return self._xs.resample(_tmp, _resample_factor,
+                                 window="hann", domain="freq")
+
+    def __recalculate(self):
+        _lower_freq = min([_ch.lower_frequency for _ch in self._bounds])
+        _higher_freq = max([_ch.higher_frequency for _ch in self._bounds])
+
+        self._input_frequency = (_lower_freq + _higher_freq) / 2
+        self._input_bandwidth = (_higher_freq - _lower_freq)
+
+        # Pad input bandwidth to make it divisable by mean channel bandwidth.
+        _mean_bandwidth = sum([_ch.bandwidth for _ch in self._bounds])
+        _mean_bandwidth //= len(self._bounds)
+
+        self._input_bandwidth += (self._input_bandwidth * -1) % _mean_bandwidth

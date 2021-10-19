@@ -7,9 +7,9 @@ Accelerated on the GPU with CUDA by [#cuSignal](https://github.com/rapidsai/cusi
 ### Analog
 - **WBFM**: Demodulation of wideband FM stations with Stereo Support. Supports 75uS and 50uS de-emphasis.
 - **MFM**: Demodulation of wideband FM stations without Stereo Support. Supports 75uS and 50uS de-emphasis.
+- **PLL**: Clock-recovery and phase estimation for real signals.
 
 ### Tools
-- **PLL**: Clock-recovery and phase estimation for real signals.
 - **Tuner**: Fast combo-tuning of wideband signals using FFT, IFFT, and polyphase-decimation.
 - **Carrousel**: Zero copy circular buffer implemented in Python.
 - **Buffer**: Array allocated in the GPU or CPU.

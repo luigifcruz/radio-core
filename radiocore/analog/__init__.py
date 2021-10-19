@@ -3,4 +3,3 @@
 from radiocore.analog.pll import *
 from radiocore.analog.wbfm import *
 from radiocore.analog.mfm import *
-from radiocore.analog.decimator import *

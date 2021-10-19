@@ -13,7 +13,7 @@ class PLL(Injector):
     Attributes
     ----------
     cuda : bool, optional
-        use the GPU for processing  (default is False)
+        use the GPU for processing (default is False)
     """
 
     def __init__(self, cuda=False):
@@ -27,5 +27,5 @@ class PLL(Injector):
         self._baseline = self._xs.hilbert(input_sig)
 
     def wave(self, mult=1.0):
-        """Return the phase-locked signal with the frequency multiplied by mult."""
+        """Return the phase-locked signal multiplied by mult."""
         return self._xp.real(self._baseline**mult)

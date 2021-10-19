@@ -42,7 +42,7 @@ class MFM(Injector):
         return (taps, 1.0)
 
     def run(self, buff):
-        b = self._xp.array(buff)
+        b = self._xp.asarray(buff)
         b = self._xp.angle(b)
         b = self._xp.unwrap(b)
         b = self._xp.diff(b)

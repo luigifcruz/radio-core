@@ -25,7 +25,8 @@ class Buffer(Injector):
         allocate memory on the GPU (default is False)
     """
 
-    def __init__(self, size: int, dtype: str, lock: bool = True, cuda: bool = False):
+    def __init__(self, size: int, dtype: str, lock: bool = True,
+                 cuda: bool = False):
         """Initialize the Buffer class."""
         self._lock = lock
         self._cuda = cuda
@@ -38,7 +39,8 @@ class Buffer(Injector):
         super().__init__(self._cuda)
 
         if self._cuda:
-            self._buffer = self._xs.get_shared_mem(self._size, dtype=self._dtype)
+            self._buffer = self._xs.get_shared_mem(self._size,
+                                                   dtype=self._dtype)
         else:
             self._buffer = self._np.zeros(self._size, dtype=self._dtype)
 
