@@ -75,9 +75,13 @@ class Carrousel:
         """Return the data inside the buffer in string format."""
         return self._items.__str__()
 
-    @contextmanager
-    def enqueue(self):
-        """Return the reference of an item to be written into."""
+    def load(self):
+        """
+        Return the tail item reference to be written into.
+
+        After write, enqueue() must be called for the item to
+        be scheduled to dequeue().
+        """
         if self.is_full:
             self._overflow += 1
             self._occupancy -= 1
@@ -86,11 +90,16 @@ class Carrousel:
             if self._print_overflow:
                 print("overflow")
 
-        try:
-            yield self._items[self._tail]
-        finally:
-            self._occupancy += 1
-            self._tail = (self._tail + 1) % self.capacity
+        return self._items[self._tail]
+
+    def enqueue(self):
+        """
+        Schedule next tail item to the output buffer.
+
+        This method should be called after load().
+        """
+        self._occupancy += 1
+        self._tail = (self._tail + 1) % self.capacity
 
     def dequeue(self):
         """Return the reference of an item to be read."""
