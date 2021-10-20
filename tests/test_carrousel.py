@@ -12,27 +12,24 @@ def test_carrousel():
     assert not carsl.is_full
     assert carsl.is_empty
 
-    buf = carsl.load()
-    buf[0] = 1
-    carsl.enqueue()
+    with carsl.enqueue() as buf:
+        buf[0] = 1
 
     assert carsl.occupancy == 1
     assert carsl.capacity == 3
     assert not carsl.is_full
     assert not carsl.is_empty
 
-    buf = carsl.load()
-    buf[0] = 2
-    carsl.enqueue()
+    with carsl.enqueue() as buf:
+        buf[0] = 2
 
     assert carsl.occupancy == 2
     assert carsl.capacity == 3
     assert not carsl.is_full
     assert not carsl.is_empty
 
-    buf = carsl.load()
-    buf[0] = 3
-    carsl.enqueue()
+    with carsl.enqueue() as buf:
+        buf[0] = 3
 
     assert carsl.occupancy == 3
     assert carsl.capacity == 3
@@ -41,9 +38,8 @@ def test_carrousel():
 
     print(carsl)
 
-    buf = carsl.load()
-    buf[0] = 4
-    carsl.enqueue()
+    with carsl.enqueue() as buf:
+        buf[0] = 4
 
     assert carsl.occupancy == 3
     assert carsl.capacity == 3
@@ -53,24 +49,24 @@ def test_carrousel():
 
     print(carsl)
 
-    buf = carsl.dequeue()
-    assert buf[0] == 2
+    with carsl.dequeue() as buf:
+        assert buf[0] == 2
 
     assert carsl.occupancy == 2
     assert carsl.capacity == 3
     assert not carsl.is_full
     assert not carsl.is_empty
 
-    buf = carsl.dequeue()
-    assert buf[0] == 3
+    with carsl.dequeue() as buf:
+        assert buf[0] == 3
 
     assert carsl.occupancy == 1
     assert carsl.capacity == 3
     assert not carsl.is_full
     assert not carsl.is_empty
 
-    buf = carsl.dequeue()
-    assert buf[0] == 4
+    with carsl.dequeue() as buf:
+        assert buf[0] == 4
 
     assert carsl.occupancy == 0
     assert carsl.capacity == 3

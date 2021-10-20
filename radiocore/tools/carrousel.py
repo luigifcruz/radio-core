@@ -2,6 +2,8 @@
 
 from contextlib import contextmanager
 
+from radiocore.tools import Buffer
+
 
 class Carrousel:
     """
@@ -75,13 +77,9 @@ class Carrousel:
         """Return the data inside the buffer in string format."""
         return self._items.__str__()
 
-    def load(self):
-        """
-        Return the tail item reference to be written into.
-
-        After write, enqueue() must be called for the item to
-        be scheduled to dequeue().
-        """
+    @contextmanager
+    def enqueue(self):
+        """Return the reference of an item to be written into."""
         if self.is_full:
             self._overflow += 1
             self._occupancy -= 1
@@ -90,23 +88,30 @@ class Carrousel:
             if self._print_overflow:
                 print("overflow")
 
-        return self._items[self._tail]
+        try:
+            _item = self._items[self._tail]
+            if isinstance(_item, Buffer):
+                with _item.consume() as _buf:
+                    yield _buf
+            else:
+                yield _item
+        finally:
+            self._occupancy += 1
+            self._tail = (self._tail + 1) % self.capacity
 
-    def enqueue(self):
-        """
-        Schedule next tail item to the output buffer.
-
-        This method should be called after load().
-        """
-        self._occupancy += 1
-        self._tail = (self._tail + 1) % self.capacity
-
+    @contextmanager
     def dequeue(self):
         """Return the reference of an item to be read."""
         if self.is_empty:
             raise ValueError("carrousel is empty")
 
-        _idx = self._head
-        self._occupancy -= 1
-        self._head = (self._head + 1) % self.capacity
-        return self._items[_idx]
+        try:
+            _item = self._items[self._head]
+            if isinstance(_item, Buffer):
+                with _item.consume() as _buf:
+                    yield _buf
+            else:
+                yield _item
+        finally:
+            self._occupancy -= 1
+            self._head = (self._head + 1) % self.capacity

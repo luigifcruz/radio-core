@@ -10,16 +10,16 @@ class Chopper:
 
     Attributes
     ----------
-    size : int
+    size : int, float
         total size of the original array
-    chunk_size : int
+    chunk_size : int, float
         desired chunk size
     """
 
-    def __init__(self, size: int, chunk_size: int):
+    def __init__(self, size, chunk_size):
         """Initialize the Chopper class."""
-        self._size = size
-        self._chunk_size = chunk_size
+        self._size = int(size)
+        self._chunk_size = int(chunk_size)
 
         if (self._size % self._chunk_size) != 0:
             raise ValueError("cannot evenly divide array by chunk size "

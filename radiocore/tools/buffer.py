@@ -17,21 +17,21 @@ class Buffer(Injector):
     ----------
     size : int
         size of the array
-    dtype : str
-        element type of the array
+    dtype : str, optional
+        element type of the array (default is complex64)
     lock : bool, optional
-        lock array when using it (default if True)
+        lock array when using it (default if False)
     cuda : bool, optional
         allocate memory on the GPU (default is False)
     """
 
-    def __init__(self, size: int, dtype: str, lock: bool = True,
+    def __init__(self, size, dtype: str = "complex64", lock: bool = False,
                  cuda: bool = False):
         """Initialize the Buffer class."""
         self._lock = lock
         self._cuda = cuda
         self._dtype = dtype
-        self._size = size
+        self._size = int(size)
 
         if self._lock:
             self._mtx = threading.Lock()
