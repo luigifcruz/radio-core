@@ -3,6 +3,7 @@
 from radiocore._internal import Injector
 from radiocore.analog import PLL
 
+
 class WBFM(Injector):
 
     def __init__(self, tau, ifs, ofs, cuda=False):
@@ -53,7 +54,7 @@ class WBFM(Injector):
         att = self._np.power(10, -((6.0 * octaves)/10))
 
         bounds = [0.0, lo, hi, hi+ro, co]
-        gain   = [1.0, 1.0, att, 0.0, 0.0]
+        gain = [1.0, 1.0, att, 0.0, 0.0]
 
         taps = self._xs.firwin2(65, bounds, gain, window="hann")
         return (taps, 1.0)
