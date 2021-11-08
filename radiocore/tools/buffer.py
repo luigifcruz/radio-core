@@ -1,6 +1,7 @@
 """Defines a Buffer module."""
 
 import threading
+from typing import Union
 from contextlib import contextmanager
 
 from radiocore._internal import Injector
@@ -13,9 +14,9 @@ class Buffer(Injector):
     The CUDA (GPU) array is allocated by cuSignal. The memory is
     manage. Therefore, it's DMA'ed to the CPU automatically.
 
-    Attributes
+    Parameters
     ----------
-    size : int
+    size : int, float
         size of the array
     dtype : str, optional
         element type of the array (default is complex64)
@@ -25,13 +26,13 @@ class Buffer(Injector):
         allocate memory on the GPU (default is False)
     """
 
-    def __init__(self, size, dtype: str = "complex64", lock: bool = False,
-                 cuda: bool = False):
+    def __init__(self, size: Union[int, float], dtype: str = "complex64",
+                 lock: bool = False, cuda: bool = False):
         """Initialize the Buffer class."""
-        self._lock = lock
-        self._cuda = cuda
-        self._dtype = dtype
-        self._size = int(size)
+        self._lock: bool = lock
+        self._cuda: bool = cuda
+        self._dtype: str = dtype
+        self._size: int = int(size)
 
         if self._lock:
             self._mtx = threading.Lock()

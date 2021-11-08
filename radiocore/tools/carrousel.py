@@ -1,6 +1,7 @@
 """Defines a Carrousel module."""
 
 from contextlib import contextmanager
+from typing import List
 
 from radiocore.tools import Buffer
 
@@ -15,7 +16,7 @@ class Carrousel:
 
     This class doesn't support multiple producers.
 
-    Attributes
+    Parameters
     ----------
     items : arr
         array of items to be cycled through
@@ -23,15 +24,15 @@ class Carrousel:
         print 'overflow' in stdout whenever some happens (default is True)
     """
 
-    def __init__(self, items, print_overflow: bool = True):
+    def __init__(self, items: List, print_overflow: bool = True):
         """Initialize the Carrousel class."""
-        self._items = items
-        self._head = 0
-        self._tail = 0
-        self._overflow = 0
-        self._occupancy = 0
-        self._capacity = len(self._items)
-        self._print_overflow = print_overflow
+        self._items: List = items
+        self._head: int = 0
+        self._tail: int = 0
+        self._overflow: int = 0
+        self._occupancy: int = 0
+        self._capacity: int = len(self._items)
+        self._print_overflow: bool = print_overflow
 
     @property
     def occupancy(self) -> int:

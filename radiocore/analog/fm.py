@@ -1,17 +1,15 @@
-"""Defines a broadcast Mono-FM demodulator module."""
+"""Defines a generic FM demodulator module."""
 
 from typing import Union
 from radiocore._internal import Injector
-from radiocore.analog.fm import FM
-from radiocore.analog.deemphasis import Deemphasis
+from radiocore.analog.decimate import Decimate
 
 
-class MFM(Injector):
+class FM(Injector):
     """
-    The MFM class provides a Mono demodulator for FM signals.
+    The FM class provides a generic demodulator for FM signals.
 
-    For stereo FM-stations, use the WBFM class.
-    For simple FM demodulation, use the FM class.
+    For broadcast FM stations, use the MFM for mono or WBFM for stereo.
 
     Parameters
     ----------
@@ -19,9 +17,6 @@ class MFM(Injector):
         input signal buffer size
     output_size : int, float
         output signal buffer size
-    deemphasis_rate: float
-        audio deemphasis rate, 75e-6 for americas,
-        otherwise 50e-6 (default is 75e-6)
     cuda : bool
         use the GPU for processing (default is False)
     """
@@ -29,17 +24,14 @@ class MFM(Injector):
     def __init__(self,
                  input_size: Union[int, float],
                  output_size: Union[int, float],
-                 deemphasis_rate: float = 75e-6,
                  cuda: bool = False):
-        """Initialize the Mono-FM class."""
+        """Initialize the FM class."""
         self._cuda: bool = cuda
         self._input_size: int = int(input_size)
         self._output_size: int = int(output_size)
 
-        self._fm_demod = FM(self._input_size, self._output_size,
-                            cuda=self._cuda)
-        self._deemphasis = Deemphasis(self._output_size, deemphasis_rate,
-                                      cuda=self._cuda)
+        self._decimate = Decimate(self._input_size, self._output_size,
+                                  zero_phase=True, cuda=self._cuda)
 
         super().__init__(cuda)
 
@@ -59,10 +51,16 @@ class MFM(Injector):
         numpy_output: bool
             copy buffer to the cpu if cuda is enabled (default True)
         """
-        _tmp = self._fm_demod.run(input_sig, False)
-        _tmp = self._deemphasis.run(_tmp)
-        _tmp -= self._xp.mean(_tmp)
-        _tmp = self._xp.clip(_tmp, -0.999, 0.999)
+        if len(input_sig) != self._input_size:
+            raise ValueError("input_sig size and input_size mismatch")
+
+        _tmp = self._xp.asarray(input_sig)
+        _tmp = self._xp.angle(_tmp)
+        _tmp = self._xp.unwrap(_tmp)
+        _tmp = self._xp.diff(_tmp)
+        _tmp = self._xp.concatenate((_tmp, self._xp.array([0])))
+        _tmp = _tmp / self._xp.pi
+        _tmp = self._decimate.run(_tmp)
 
         if self._cuda and numpy_output:
             return self._xp.asnumpy(_tmp)

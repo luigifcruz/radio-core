@@ -1,106 +1,109 @@
 """Defines a WBFM module."""
 
+from typing import Union
 from radiocore._internal import Injector
 from radiocore.analog import PLL
+from radiocore.analog.fm import FM
+from radiocore.analog.deemphasis import Deemphasis
+from radiocore.analog.decimate import Decimate
+from radiocore.analog.bandpass import Bandpass
 
 
 class WBFM(Injector):
+    """
+    The WBFM class provides a Stereo demodulator for FM signals.
 
-    def __init__(self, tau, ifs, ofs, cuda=False):
-        self._cuda = cuda
+    For mono FM-stations, use the MFM class.
+    For simple FM demodulation, use the FM class.
+
+    Parameters
+    ----------
+    input_size : int, float
+        input signal buffer size
+    output_size : int, float
+        output signal buffer size
+    deemphasis_rate: float
+        audio deemphasis rate, 75e-6 for americas,
+        otherwise 50e-6 (default is 75e-6)
+    cuda : bool
+        use the GPU for processing (default is False)
+    """
+
+    def __init__(self,
+                 input_size: Union[int, float],
+                 output_size: Union[int, float],
+                 deemphasis_rate: float = 75e-6,
+                 cuda: bool = False):
+        """Initialize the Stereo-FM class."""
+        self._cuda: bool = cuda
+        self._input_size: int = int(input_size)
+        self._output_size: int = int(output_size)
+
+        self._fm_demod = FM(self._input_size, self._input_size,
+                            cuda=self._cuda)
+
+        self._plt_filter = Bandpass(self._input_size, 19e3-100, 19e3+100,
+                                    cuda=self._cuda)
+
+        self._lmr_filter = Bandpass(self._input_size, 23e3, 53e3,
+                                    cuda=self._cuda)
+
+        self._pll = PLL(cuda=self._cuda)
+
+        self._decimate = Decimate(self._input_size, self._output_size,
+                                  zero_phase=True, cuda=self._cuda)
+
+        self._left_deemphasis = Deemphasis(self._output_size, deemphasis_rate,
+                                           cuda=self._cuda)
+
+        self._right_deemphasis = Deemphasis(self._output_size, deemphasis_rate,
+                                            cuda=self._cuda)
 
         super().__init__(cuda)
 
-        # Variables to Self
-        self.tau = tau
-        self.ifs = ifs
-        self.ofs = ofs
-        self.dec = int(self.ifs/self.ofs)
+    @property
+    def channels(self):
+        """Return the number of audio channels of the output."""
+        return 2
 
-        # Check Parameters
-        assert (self.ifs % self.ofs) == 0
+    def run(self, input_sig, numpy_output: bool = True):
+        """
+        Demodulate the input signal and output the audio buffer.
 
-        # Setup Pilot PLL
-        self.pll = PLL(cuda=self._cuda)
+        Parameters
+        ----------
+        input_sig : arr
+            input signal array, size should match the input_size
+        numpy_output: bool
+            copy buffer to the cpu if cuda is enabled (default True)
+        """
+        _tmp = self._fm_demod.run(input_sig, False)
 
-        # Setup Filters
-        afb, afa = self.deemp()
-        bfb, bfa = self.bandpass(23e3, 53e3)
-        pfb, pfa = self.bandpass(19e3-100, 19e3+100)
+        # Filter pilot and update PLL.
+        self._pll.step(self._plt_filter.run(_tmp))
 
-        self.fi = {
-            "afb": afb, "afa": afa,
-            "bfb": bfb, "bfa": bfa,
-            "pfb": pfb, "pfa": pfa,
-        }
-
-        # Setup Filters Initial Conditions
-        self.zi = {
-            "afr": self._xs.lfilter_zi(afb, afa),
-            "afl": self._xs.lfilter_zi(afb, afa),
-            "pfb": self._xs.lfilter_zi(pfb, pfa),
-        }
-
-    def nyq(self, freq_hz):
-        return (freq_hz / (0.5 * self.ifs))
-
-    def deemp(self):
-        lo = self.nyq(1.0 / (2 * self._np.pi * self.tau))
-        hi = self.nyq(15e3)
-        co = self.nyq(self.ifs/2)
-        ro = self.nyq(100)
-
-        octaves = self._np.log(hi / lo) / self._np.log(2)
-        att = self._np.power(10, -((6.0 * octaves)/10))
-
-        bounds = [0.0, lo, hi, hi+ro, co]
-        gain = [1.0, 1.0, att, 0.0, 0.0]
-
-        taps = self._xs.firwin2(65, bounds, gain, window="hann")
-        return (taps, 1.0)
-
-    def bandpass(self, lowcut, highcut):
-        lo = self.nyq(lowcut)
-        hi = self.nyq(highcut)
-        tp = self._xs.firwin(51, [lo, hi], pass_zero=False, window="hann")
-        return (tp, 1.0)
-
-    def run(self, buff):
-        b = self._xp.asarray(buff)
-        b = self._xp.angle(b)
-        b = self._xp.unwrap(b)
-        b = self._xp.diff(b)
-        b = self._xp.concatenate((b, self._xp.array([b[-1]])))
-        b /= self._xp.pi
-
-        # Synchronize PLL with Pilot
-        P, self.zi['pfb'] = self._xs.lfilter(self.fi['pfb'], self.fi['pfa'], b, zi=self.zi['pfb'])
-        self.pll.step(P)
-
-        # Demod Left + Right (LPR)
-        LPR, self.zi['afl'] = self._xs.lfilter(self.fi['afb'], self.fi['afa'], b, zi=self.zi['afl'])
-        LPR = self._xs.decimate(LPR, self.dec, zero_phase=True)
-
-        # Demod Left - Right (LMR)
-        LMR = self._xs.filtfilt(self.fi['bfb'], self.fi['bfa'], b)
-        LMR = (self.pll.wave(2) * LMR) * 1.0175
-        LMR, self.zi['afr'] = self._xs.lfilter(self.fi['afb'], self.fi['afa'], LMR, zi=self.zi['afr'])
-        LMR = self._xs.decimate(LMR, self.dec, zero_phase=True)
+        # Filter the Left - Right component.
+        _lmr = self._lmr_filter.run(_tmp)
+        _lmr = (self._pll.wave(2) * _lmr) * 1.0175
 
         # Mix L+R and L-R to generate L and R
-        L = LPR + LMR
-        R = LPR - LMR
+        _l = self._decimate.run(_tmp + _lmr)
+        _r = self._decimate.run(_tmp - _lmr)
+
+        # Deemphasize channels.
+        _l = self._left_deemphasis.run(_l)
+        _r = self._right_deemphasis.run(_r)
 
         # Remove DC from signal.
-        L -= self._xp.mean(L)
-        R -= self._xp.mean(R)
+        _l -= self._xp.mean(_l)
+        _r -= self._xp.mean(_r)
 
         # Ensure Bounds
-        L = self._xp.clip(L, -0.999, 0.999)
-        R = self._xp.clip(R, -0.999, 0.999)
+        _l = self._xp.clip(_l, -0.999, 0.999)
+        _r = self._xp.clip(_r, -0.999, 0.999)
 
-        if self._cuda:
-            L = self._xp.asnumpy(L)
-            R = self._xp.asnumpy(R)
+        if self._cuda and numpy_output:
+            _l = self._xp.asnumpy(_l)
+            _r = self._xp.asnumpy(_r)
 
-        return L, R
+        return _l, _r

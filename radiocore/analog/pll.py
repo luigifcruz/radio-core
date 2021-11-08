@@ -10,22 +10,36 @@ class PLL(Injector):
     This is usefull to change the frequency of a pilot signal.
     This class is based in the Hilbert transform.
 
-    Attributes
+    Parameters
     ----------
     cuda : bool, optional
         use the GPU for processing (default is False)
     """
 
-    def __init__(self, cuda=False):
+    def __init__(self, cuda: bool = False):
         """Initialize the PLL class."""
-        self._cuda = cuda
+        self._cuda: bool = cuda
         self._baseline = None
         super().__init__(self._cuda)
 
     def step(self, input_sig):
-        """Update the internal state according to the input_sig (arr)."""
+        """
+        Update the internal state according to the input_sig (arr).
+
+        Parameters
+        ----------
+        input_sig : arr
+            input signal array
+        """
         self._baseline = self._xs.hilbert(input_sig)
 
-    def wave(self, mult=1.0):
-        """Return the phase-locked signal multiplied by mult."""
+    def wave(self, mult: float = 1.0):
+        """
+        Return the phase-locked signal multiplied by mult.
+
+        Parameters
+        ----------
+        mult : int, float
+            frequency multiplier of the output signal
+        """
         return self._xp.real(self._baseline**mult)

@@ -1,5 +1,7 @@
 """Defines a Chopper module."""
 
+from typing import Union
+
 
 class Chopper:
     """
@@ -8,7 +10,7 @@ class Chopper:
     It's usefull when you need to populate an array used for processing with
     smaller arrays.
 
-    Attributes
+    Parameters
     ----------
     size : int, float
         total size of the original array
@@ -16,14 +18,24 @@ class Chopper:
         desired chunk size
     """
 
-    def __init__(self, size, chunk_size):
+    def __init__(self, size: Union[int, float], chunk_size: Union[int, float]):
         """Initialize the Chopper class."""
-        self._size = int(size)
-        self._chunk_size = int(chunk_size)
+        self._size: int = int(size)
+        self._chunk_size: int = int(chunk_size)
 
         if (self._size % self._chunk_size) != 0:
             raise ValueError("cannot evenly divide array by chunk size "
                              f"({self._size}, {self._chunk_size})")
+
+    @property
+    def size(self):
+        """Return the size of the entire buffer."""
+        return self._size
+
+    @property
+    def chunk_size(self):
+        """Return the chunk size."""
+        return self._chunk_size
 
     def chop(self, input_arr):
         """

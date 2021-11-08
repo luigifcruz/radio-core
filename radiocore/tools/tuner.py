@@ -10,7 +10,7 @@ class Channel:
     """
     The Channel class holds frequency boundaries and other related data.
 
-    Attributes
+    Parameters
     ----------
     lower_frequency : float
         lower frequency boundary of the channel
@@ -36,7 +36,7 @@ class Tuner(Injector):
     is arranged in one second chunks. This class is based on a
     FFT, a resampler, and a IFFT. It's quite fast in the GPU.
 
-    Attributes
+    Parameters
     ----------
     cuda : bool
         use the GPU for processing  (default is False)
@@ -70,7 +70,7 @@ class Tuner(Injector):
         value set by this method will be overridden if add_channel is
         called afterward.
 
-        Attributes
+        Parameters
         ----------
         bandwidth : float
             desired bandwidth
@@ -86,7 +86,7 @@ class Tuner(Injector):
 
         This call recalculates all parameters.
 
-        Attributes
+        Parameters
         ----------
         frequency : float
             output channel center frequency
@@ -112,7 +112,7 @@ class Tuner(Injector):
 
         This method should be called in advance of run().
 
-        Attributes
+        Parameters
         ----------
         input_signal : arr
             input signal buffer with one second worth of samples
@@ -126,7 +126,7 @@ class Tuner(Injector):
 
         This method should be called after load().
 
-        Attributes
+        Parameters
         ----------
         channel_index : int
             index of the channel
