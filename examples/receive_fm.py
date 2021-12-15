@@ -7,6 +7,17 @@ from SoapySDR import Device, SOAPY_SDR_CF32, SOAPY_SDR_RX
 from radiocore import Buffer, Carrousel, Chopper, MFM, WBFM
 
 
+def receive(carsl):
+    # Load, fill, and enqueue buffer.
+    with carsl.enqueue() as buffer:
+        for chunk in chopr.chop(buffer):
+            sdr.readStream(rx, [chunk], len(chunk), timeoutUs=int(1e9))
+
+    # Start audio when buffer reaches N samples.
+    if carsl.occupancy >= 4 and not stream.active:
+        stream.start()
+
+
 def process(outdata, *_):
     if not carsl.is_healthy:
         return
@@ -21,26 +32,15 @@ def process(outdata, *_):
             outdata[:, 0] = demoded
 
 
-def receive(carsl):
-    # Load, fill, and enqueue buffer.
-    with carsl.enqueue() as buffer:
-        for chunk in chopr.chop(buffer):
-            sdr.readStream(rx, [chunk], len(chunk), timeoutUs=int(1e9))
-
-    # Start audio when buffer reaches N samples.
-    if carsl.occupancy >= 4 and not stream.active:
-        stream.start()
-
-
 if __name__ == "__main__":
-    enable_cuda: bool = False
-    frequency: float = 96.9e6
-    deemphasis: float = 75e-6
-    input_rate: float = 256e3
-    output_rate: float = 32e3
-    device_buffer: float = 2048
-    device_name: str = "airspyhf"
-    demodulator = WBFM
+    enable_cuda: bool = False       # If True, enable CUDA demodulation.
+    frequency: float = 94.9e6       # Set the FM station frequency.
+    deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and SK.
+    input_rate: float = 256e3       # Station FM bandwidth (240-256 kHz).
+    output_rate: float = 32e3       # Audio bandwidth (32-48 kHz).
+    device_buffer: float = 2048     # SDR device buffer size.
+    device_name: str = "airspyhf"   # SoapySDR device string.
+    demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
 
     # SoapySDR configuration.
     print("Configuring device...")
