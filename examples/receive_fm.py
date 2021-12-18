@@ -7,23 +7,23 @@ from SoapySDR import Device, SOAPY_SDR_CF32, SOAPY_SDR_RX
 from radiocore import Buffer, Carrousel, Chopper, MFM, WBFM
 
 
-def receive(carsl):
+def receive(queue):
     # Load, fill, and enqueue buffer.
-    with carsl.enqueue() as buffer:
+    with queue.enqueue() as buffer:
         for chunk in chopr.chop(buffer):
             sdr.readStream(rx, [chunk], len(chunk), timeoutUs=int(1e9))
 
     # Start audio when buffer reaches N samples.
-    if carsl.occupancy >= 4 and not stream.active:
+    if queue.occupancy >= 4 and not stream.active:
         stream.start()
 
 
 def process(outdata, *_):
-    if not carsl.is_healthy:
+    if not queue.is_healthy:
         return
 
     # Load, demod, and play buffer.
-    with carsl.dequeue() as buffer:
+    with queue.dequeue() as buffer:
         demoded = demod.run(buffer)
 
         if demod.channels == 2:
@@ -34,7 +34,7 @@ def process(outdata, *_):
 
 if __name__ == "__main__":
     enable_cuda: bool = False       # If True, enable CUDA demodulation.
-    frequency: float = 94.9e6       # Set the FM station frequency.
+    frequency: float = 94.5e6       # Set the FM station frequency.
     deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and SK.
     input_rate: float = 256e3       # Station FM bandwidth (240-256 kHz).
     output_rate: float = 32e3       # Audio bandwidth (32-48 kHz).
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     # Queue and shared memory allocation.
     print("Configuring DSP...")
     chopr = Chopper(input_rate, device_buffer)
-    carsl = Carrousel([Buffer(input_rate, cuda=enable_cuda) for _ in range(8)])
+    queue = Carrousel([Buffer(input_rate, cuda=enable_cuda) for _ in range(8)])
     demod = demodulator(input_rate, output_rate, cuda=enable_cuda)
 
     # Start collecting data.
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     try:
         print("Starting playback...")
         while True:
-            receive(carsl)
+            receive(queue)
     except KeyboardInterrupt:
         sdr.deactivateStream(rx)
         sdr.closeStream(rx)
