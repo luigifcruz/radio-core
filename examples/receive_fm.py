@@ -4,7 +4,7 @@ import numpy as np
 import sounddevice as sd
 
 from SoapySDR import Device, SOAPY_SDR_CF32, SOAPY_SDR_RX
-from radiocore import Buffer, Carrousel, Chopper, MFM, WBFM
+from radiocore import Buffer, Carrousel, Chopper, MFM, WBFM, Resample
 
 
 def receive(queue):
@@ -24,7 +24,7 @@ def process(outdata, *_):
 
     # Load, demod, and play buffer.
     with queue.dequeue() as buffer:
-        demoded = demod.run(buffer)
+        demoded = demod.run(decim.run(buffer))
 
         if demod.channels == 2:
             outdata[:] = np.dstack(demoded)
@@ -34,13 +34,14 @@ def process(outdata, *_):
 
 if __name__ == "__main__":
     enable_cuda: bool = False       # If True, enable CUDA demodulation.
-    frequency: float = 94.5e6       # Set the FM station frequency.
-    deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and SK.
-    input_rate: float = 256e3       # Station FM bandwidth (240-256 kHz).
-    output_rate: float = 32e3       # Audio bandwidth (32-48 kHz).
-    device_buffer: float = 2048     # SDR device buffer size.
-    device_name: str = "airspyhf"   # SoapySDR device string.
-    demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
+    frequency: float = 96.9e6       # Set the FM station frequency.
+    deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and SKorea.
+    input_rate: float = 2.5e6        # SDR RX bandwidth.
+    radio_rate: float = 240e3       # FM station bandwidth. (240-256 kHz).
+    output_rate: float = 48e3       # Audio bandwidth (32-48 kHz).
+    device_buffer: float = 2000     # SDR device buffer size.
+    device_name: str = "airspy"     # SoapySDR device string.
+    demodulator = MFM              # Demodulator (WBFM, MFM, or FM).
 
     # SoapySDR configuration.
     print("Configuring device...")
@@ -53,8 +54,9 @@ if __name__ == "__main__":
     # Queue and shared memory allocation.
     print("Configuring DSP...")
     chopr = Chopper(input_rate, device_buffer)
-    queue = Carrousel([Buffer(input_rate, cuda=enable_cuda) for _ in range(8)])
-    demod = demodulator(input_rate, output_rate, cuda=enable_cuda)
+    queue = Carrousel([Buffer(input_rate, cuda=enable_cuda) for _ in range(10)])
+    decim = Resample(input_rate, radio_rate, cuda=enable_cuda)
+    demod = demodulator(radio_rate, output_rate, cuda=enable_cuda)
 
     # Start collecting data.
     print("Starting device and audio stream...")
