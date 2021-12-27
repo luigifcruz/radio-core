@@ -21,7 +21,7 @@ build-backend = "poetry.core.masonry.api"
 reportGeneralTypeIssues = false
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.10"
+python = ">=3.7"
 numpy = "^1.19.4"
 scipy = "^1.5"
 cupy = {version = "^9.5.0", optional = true}
