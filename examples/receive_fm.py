@@ -4,14 +4,14 @@ import numpy as np
 import sounddevice as sd
 
 from SoapySDR import Device, SOAPY_SDR_CF32, SOAPY_SDR_RX
-from radiocore import Buffer, Carrousel, Chopper, MFM, WBFM, Resample
+from radiocore import Buffer, Carrousel, Chopper, FM, MFM, WBFM, Decimate
 
 
 def receive(queue):
     # Load, fill, and enqueue buffer.
     with queue.enqueue() as buffer:
         for chunk in chopr.chop(buffer):
-            sdr.readStream(rx, [chunk], len(chunk), timeoutUs=int(1e9))
+            (sdr.readStream(rx, [chunk], len(chunk), timeoutUs=int(1e9)))
 
     # Start audio when buffer reaches N samples.
     if queue.occupancy >= 4 and not stream.active:
@@ -36,12 +36,12 @@ if __name__ == "__main__":
     enable_cuda: bool = False       # If True, enable CUDA demodulation.
     frequency: float = 96.9e6       # Set the FM station frequency.
     deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and SKorea.
-    input_rate: float = 2.5e6        # SDR RX bandwidth.
-    radio_rate: float = 240e3       # FM station bandwidth. (240-256 kHz).
-    output_rate: float = 48e3       # Audio bandwidth (32-48 kHz).
-    device_buffer: float = 2000     # SDR device buffer size.
-    device_name: str = "airspy"     # SoapySDR device string.
-    demodulator = MFM              # Demodulator (WBFM, MFM, or FM).
+    input_rate: float = 2.4e6       # SDR RX bandwidth.
+    demod_rate: float = 240e3       # FM station bandwidth. (240-256 kHz).
+    audio_rate: float = 48e3       # Audio bandwidth (32-48 kHz).
+    device_buffer: float = 2500     # SDR device buffer size.
+    device_name: str = "lime"     # SoapySDR device string.
+    demodulator = WBFM               # Demodulator (WBFM, MFM, or FM).
 
     # SoapySDR configuration.
     print("Configuring device...")
@@ -55,14 +55,14 @@ if __name__ == "__main__":
     print("Configuring DSP...")
     chopr = Chopper(input_rate, device_buffer)
     queue = Carrousel([Buffer(input_rate, cuda=enable_cuda) for _ in range(10)])
-    decim = Resample(input_rate, radio_rate, cuda=enable_cuda)
-    demod = demodulator(radio_rate, output_rate, cuda=enable_cuda)
+    decim = Decimate(input_rate, demod_rate, zero_phase=True, cuda=enable_cuda)
+    demod = demodulator(demod_rate, audio_rate, cuda=enable_cuda)
 
     # Start collecting data.
     print("Starting device and audio stream...")
     sdr.activateStream(rx)
-    stream = sd.OutputStream(blocksize=int(output_rate), callback=process,
-                             samplerate=int(output_rate), channels=demod.channels)
+    stream = sd.OutputStream(blocksize=int(audio_rate), callback=process,
+                             samplerate=int(audio_rate), channels=demod.channels)
 
     try:
         print("Starting playback...")
