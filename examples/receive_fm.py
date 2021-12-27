@@ -38,10 +38,15 @@ if __name__ == "__main__":
     deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and SKorea.
     input_rate: float = 2.4e6       # SDR RX bandwidth.
     demod_rate: float = 240e3       # FM station bandwidth. (240-256 kHz).
-    audio_rate: float = 48e3       # Audio bandwidth (32-48 kHz).
-    device_buffer: float = 2500     # SDR device buffer size.
-    device_name: str = "lime"     # SoapySDR device string.
-    demodulator = WBFM               # Demodulator (WBFM, MFM, or FM).
+    audio_rate: float = 48e3        # Audio bandwidth (32-48 kHz).
+    device_name: str = "rtlsdr"     # SoapySDR device string.
+    demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
+
+    device_buffer: int = 2048
+    input_buffer: int = device_buffer * 1000
+    demod_buffer: int = input_buffer / (input_rate / demod_rate)
+    audio_buffer: int = demod_buffer / (demod_rate / audio_rate)
+    print(input_buffer, demod_buffer, audio_buffer)
 
     # SoapySDR configuration.
     print("Configuring device...")
@@ -53,15 +58,15 @@ if __name__ == "__main__":
 
     # Queue and shared memory allocation.
     print("Configuring DSP...")
-    chopr = Chopper(input_rate, device_buffer)
-    queue = Carrousel([Buffer(input_rate, cuda=enable_cuda) for _ in range(10)])
-    decim = Decimate(input_rate, demod_rate, zero_phase=True, cuda=enable_cuda)
-    demod = demodulator(demod_rate, audio_rate, cuda=enable_cuda)
+    chopr = Chopper(input_buffer, device_buffer)
+    queue = Carrousel([Buffer(input_buffer, cuda=enable_cuda) for _ in range(10)])
+    decim = Decimate(input_buffer, demod_buffer, zero_phase=True, cuda=enable_cuda)
+    demod = demodulator(demod_buffer, audio_buffer, cuda=enable_cuda)
 
     # Start collecting data.
     print("Starting device and audio stream...")
     sdr.activateStream(rx)
-    stream = sd.OutputStream(blocksize=int(audio_rate), callback=process,
+    stream = sd.OutputStream(blocksize=int(audio_buffer), callback=process,
                              samplerate=int(audio_rate), channels=demod.channels)
 
     try:
