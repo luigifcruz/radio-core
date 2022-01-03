@@ -31,9 +31,6 @@ class Decimate(Injector):
         self._input_size: int = int(input_size)
         self._output_size: int = int(output_size)
 
-        if (self._input_size % self._output_size) != 0:
-            raise ValueError("input_size should be divisable by output_size")
-
         self._rate: int = self._input_size // self._output_size
 
         super().__init__(cuda)
@@ -61,6 +58,6 @@ class Decimate(Injector):
                                          zero_phase=self._phase)
 
         if len(_tmp) != self._output_size:
-            raise EnvironmentError("output size and output_size mismatch")
+            _tmp = self._xs.resample(_tmp, self._output_size)
 
         return _tmp

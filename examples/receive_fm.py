@@ -4,7 +4,7 @@ import numpy as np
 import sounddevice as sd
 
 from SoapySDR import Device, SOAPY_SDR_CF32, SOAPY_SDR_RX
-from radiocore import Buffer, Carrousel, Chopper, MFM, WBFM
+from radiocore import Buffer, Carrousel, Chopper, FM, MFM, WBFM, Decimate
 
 
 def receive(queue):
@@ -24,7 +24,7 @@ def process(outdata, *_):
 
     # Load, demod, and play buffer.
     with queue.dequeue() as buffer:
-        demoded = demod.run(buffer)
+        demoded = demod.run(decim.run(buffer))
 
         if demod.channels == 2:
             outdata[:] = np.dstack(demoded)
@@ -34,13 +34,26 @@ def process(outdata, *_):
 
 if __name__ == "__main__":
     enable_cuda: bool = False       # If True, enable CUDA demodulation.
-    frequency: float = 94.5e6       # Set the FM station frequency.
-    deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and SK.
-    input_rate: float = 256e3       # Station FM bandwidth (240-256 kHz).
-    output_rate: float = 32e3       # Audio bandwidth (32-48 kHz).
-    device_buffer: float = 2048     # SDR device buffer size.
-    device_name: str = "airspyhf"   # SoapySDR device string.
+    frequency: float = 96.9e6       # Set the FM station frequency.
+    deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and SKorea.
+    input_rate: float = 2.4e6       # SDR RX bandwidth.
+    demod_rate: float = 240e3       # FM station bandwidth. (240-256 kHz).
+    audio_rate: float = 48e3        # Audio bandwidth (32-48 kHz).
+    device_name: str = "sdrplay"    # SoapySDR device string.
+    device_buffer: int = 1024       # Device buffer size.
+    buffer_multiplier: int = 2000   # Multiplier of device buffer.
     demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
+
+    # Calculate buffer sizes.
+    input_buffer: int = device_buffer * buffer_multiplier
+    demod_buffer: int = input_buffer / (input_rate / demod_rate)
+    audio_buffer: int = demod_buffer / (demod_rate / audio_rate)
+
+    print("Buffer Size:")
+    print(f"    Device Buffer: {device_buffer}")
+    print(f"    Input Buffer: {input_buffer}")
+    print(f"    Demod Buffer: {demod_buffer}")
+    print(f"    Audio Buffer: {audio_buffer}")
 
     # SoapySDR configuration.
     print("Configuring device...")
@@ -52,15 +65,16 @@ if __name__ == "__main__":
 
     # Queue and shared memory allocation.
     print("Configuring DSP...")
-    chopr = Chopper(input_rate, device_buffer)
-    queue = Carrousel([Buffer(input_rate, cuda=enable_cuda) for _ in range(8)])
-    demod = demodulator(input_rate, output_rate, cuda=enable_cuda)
+    chopr = Chopper(input_buffer, device_buffer)
+    queue = Carrousel([Buffer(input_buffer, cuda=enable_cuda) for _ in range(10)])
+    decim = Decimate(input_buffer, demod_buffer, zero_phase=True, cuda=enable_cuda)
+    demod = demodulator(demod_buffer, audio_buffer, cuda=enable_cuda)
 
     # Start collecting data.
     print("Starting device and audio stream...")
     sdr.activateStream(rx)
-    stream = sd.OutputStream(blocksize=int(output_rate), callback=process,
-                             samplerate=int(output_rate), channels=demod.channels)
+    stream = sd.OutputStream(blocksize=int(audio_buffer), callback=process,
+                             samplerate=int(audio_rate), channels=demod.channels)
 
     try:
         print("Starting playback...")
