@@ -11,7 +11,7 @@ def receive(queue):
     # Load, fill, and enqueue buffer.
     with queue.enqueue() as buffer:
         for chunk in chopr.chop(buffer):
-            (sdr.readStream(rx, [chunk], len(chunk), timeoutUs=int(1e9)))
+            sdr.readStream(rx, [chunk], len(chunk), timeoutUs=int(1e9))
 
     # Start audio when buffer reaches N samples.
     if queue.occupancy >= 4 and not stream.active:
@@ -39,14 +39,21 @@ if __name__ == "__main__":
     input_rate: float = 2.4e6       # SDR RX bandwidth.
     demod_rate: float = 240e3       # FM station bandwidth. (240-256 kHz).
     audio_rate: float = 48e3        # Audio bandwidth (32-48 kHz).
-    device_name: str = "rtlsdr"     # SoapySDR device string.
+    device_name: str = "sdrplay"    # SoapySDR device string.
+    device_buffer: int = 1024       # Device buffer size.
+    buffer_multiplier: int = 2000   # Multiplier of device buffer.
     demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
 
-    device_buffer: int = 2048
-    input_buffer: int = device_buffer * 1000
+    # Calculate buffer sizes.
+    input_buffer: int = device_buffer * buffer_multiplier
     demod_buffer: int = input_buffer / (input_rate / demod_rate)
     audio_buffer: int = demod_buffer / (demod_rate / audio_rate)
-    print(input_buffer, demod_buffer, audio_buffer)
+
+    print("Buffer Size:")
+    print(f"    Device Buffer: {device_buffer}")
+    print(f"    Input Buffer: {input_buffer}")
+    print(f"    Demod Buffer: {demod_buffer}")
+    print(f"    Audio Buffer: {audio_buffer}")
 
     # SoapySDR configuration.
     print("Configuring device...")
