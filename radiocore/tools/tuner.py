@@ -62,6 +62,11 @@ class Tuner(Injector):
         """Return the bandwidth of the input data."""
         return self._input_bandwidth
 
+    @property
+    def channels(self) -> Channel:
+        """Return list of registered channels."""
+        return self._bounds
+
     def request_bandwidth(self, bandwidth: float):
         """
         Override the calculated bandwidth.
@@ -77,6 +82,7 @@ class Tuner(Injector):
         """
         if bandwidth >= self._input_bandwidth:
             self._input_bandwidth = bandwidth
+            self.__recalculate()
         raise ValueError("requested bandwidth is too low, minimum "
                          f"is {self._input_bandwidth}")
 
