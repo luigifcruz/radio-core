@@ -12,7 +12,7 @@ class Buffer(Injector):
     The Buffer class manage a CPU or GPU array.
 
     The CUDA (GPU) array is allocated by cuSignal. The memory is
-    manage. Therefore, it's DMA'ed to the CPU automatically.
+    managed. Therefore, it's DMA'ed to the CPU automatically.
 
     Parameters
     ----------
@@ -60,12 +60,21 @@ class Buffer(Injector):
         """Return the size of the array."""
         return self._size
 
+    def __len__(self) -> int:
+        """Return the size of the array."""
+        return self.size
+
     @property
     def is_locked(self) -> bool:
         """Return if the array is currently in use."""
         if not self._lock:
             raise ValueError("locking is not enabled in this instance")
         return self._mtx.locked()
+
+    @property
+    def data(self):
+        """Return the pointer of the inner buffer."""
+        return self._buffer
 
     @contextmanager
     def consume(self):
