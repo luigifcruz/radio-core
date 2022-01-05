@@ -6,8 +6,6 @@ import sounddevice as sd
 from SoapySDR import Device, SOAPY_SDR_CF32, SOAPY_SDR_RX
 from radiocore import Buffer, RingBuffer, FM, MFM, WBFM, Decimate
 
-import numpy.distutils.system_info as sysinfo
-np.show_config()
 
 # Define demodulation callback. This should not block.
 def process(outdata, *_):
