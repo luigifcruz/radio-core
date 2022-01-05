@@ -75,6 +75,9 @@ class RingBuffer(Injector):
         """Return printable version of the backbuffer."""
         return self._buffer.__str__()
 
+    def __copy(self, dst, src):
+        return self._xp.copyto(self._xp.asarray(dst), self._xp.asarray(src))
+
     def append(self, buffer):
         """
         Copy all buffer elements into ring buffer.
@@ -125,16 +128,16 @@ class RingBuffer(Injector):
         if (self.capacity - self._tail) >= len(buffer):
             _src = self._buffer[self._tail:self._tail+len(buffer)]
             _dst = buffer
-            self._xp.copyto(_dst, _src)
+            self.__copy(_dst, _src)
         else:
             _src = self._buffer[self._tail:self.capacity]
             _dst = buffer
-            self._xp.copyto(_dst, _src)
+            self.__copy(_dst, _src)
 
             _remainer = self.capacity - self._tail
             _src = self._buffer[:len(buffer)-_remainer]
             _dst = buffer[_remainer:]
-            self._xp.copyto(_dst, _src)
+            self.__copy(_dst, _src)
 
         self._tail = (self._tail + len(buffer)) % self.capacity
         self._occupancy = self.occupancy - len(buffer)
