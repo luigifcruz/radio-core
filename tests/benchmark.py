@@ -10,7 +10,7 @@ class FmBenchmark:
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.cuda = cuda
-        self.iterations = 500
+        self.iterations = 5
 
         self.wbfm = WBFM(self.input_size, self.output_size, cuda=cuda)
         self.mfm = MFM(self.input_size, self.output_size, cuda=cuda)
@@ -35,7 +35,7 @@ class DecimateBenchmark:
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.cuda = cuda
-        self.iterations = 50
+        self.iterations = 5
 
         self.decim = Decimate(self.input_size, self.output_size, cuda=cuda)
         self.buff = Buffer(self.input_size, dtype=np.complex64, cuda=cuda)
@@ -49,10 +49,13 @@ class DecimateBenchmark:
               .format(self.input_size, self.output_size, self.cuda))
         self.eval('self.decim.run(self.buff.data)', 'Decimate')
 
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
-
+    FmBenchmark(256e3, 32e3, False).test()
     DecimateBenchmark(10e6, 250e3, False).test()
     DecimateBenchmark(2.5e6, 250e3, False).test()
+
+    FmBenchmark(256e3, 32e3, True).test()
     DecimateBenchmark(10e6, 250e3, True).test()
     DecimateBenchmark(2.5e6, 250e3, True).test()

@@ -1,8 +1,7 @@
 """Defines a Injector module."""
 
 import importlib
-import pyfftw
-import scipy
+
 
 class Injector:
     """
@@ -26,7 +25,3 @@ class Injector:
             self._xp = importlib.import_module('numpy')
             self._np = self._xp
             self._ss = self._xs
-
-        pyfftw.config.NUM_THREADS = 4
-        scipy.fft.set_global_backend(pyfftw.interfaces.scipy_fft)
-        pyfftw.interfaces.cache.enable()
