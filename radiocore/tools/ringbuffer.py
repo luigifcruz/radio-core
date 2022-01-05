@@ -1,31 +1,33 @@
 """Defines a Ring Buffer module."""
 
 from typing import Union
-from contextlib import contextmanager
 
 from radiocore._internal import Injector
 
+
 class RingBuffer(Injector):
     """
-    The Buffer class manage a CPU or GPU array.
+    The Ring Buffer class manage a CPU or GPU array in a circular fashion.
 
-    The CUDA (GPU) array is allocated by cuSignal. The memory is
-    manage. Therefore, it's DMA'ed to the CPU automatically.
+    The CUDA (GPU) backbuffer is allocated by cuSignal. The memory is
+    managed. Therefore, it's DMA'ed to the CPU automatically.
 
     Parameters
     ----------
-    size : int, float
-        size of the array
+    capacity : int, float
+        maximum capacity of the backbuffer
     dtype : str, optional
         element type of the array (default is complex64)
-    lock : bool, optional
-        lock array when using it (default if False)
     cuda : bool, optional
         allocate memory on the GPU (default is False)
+    print_overflow : bool, optional
+        print to stdout if buffer overflow happens (default is True)
+    allow_overflow : bool, optional
+        let overflow happen without raising an exception (default is True)
     """
 
     def __init__(self,
-                 capacity: int,
+                 capacity: Union[int, float],
                  dtype: str = "complex64",
                  cuda: bool = False,
                  print_overflow: bool = True,
@@ -51,24 +53,37 @@ class RingBuffer(Injector):
 
     @property
     def capacity(self) -> int:
+        """Return buffer capacity."""
         return self._capacity
 
     @property
     def occupancy(self) -> int:
+        """Return the current buffer occupancy. Used space."""
         return self._occupancy
 
     @property
     def vacancy(self) -> int:
+        """Return the current buffer vacancy. Space left."""
         return self.capacity - self.occupancy
 
     @property
     def data(self):
+        """Return the backbuffer. Use with care."""
         return self._buffer
 
     def __str__(self) -> str:
+        """Return printable version of the backbuffer."""
         return self._buffer.__str__()
 
     def append(self, buffer):
+        """
+        Copy all buffer elements into ring buffer.
+
+        Parameters
+        ----------
+        buffer : ndarray
+            array containing the elements to be copied
+        """
         if len(buffer) > self.capacity:
             raise ValueError("Input buffer is bigger than ring capacity.")
 
@@ -83,16 +98,24 @@ class RingBuffer(Injector):
             self._occupancy += len(buffer) - self.occupancy
 
         if (self.capacity - self._head) >= len(buffer):
-            self._buffer[self._head:self._head+len(buffer)] = buffer;
+            self._buffer[self._head:self._head+len(buffer)] = buffer
         else:
             _remainer = self.capacity - self._head
             self._buffer[self._head:self.capacity] = buffer[:_remainer]
             self._buffer[:len(buffer)-_remainer] = buffer[_remainer:len(buffer)]
 
-        self._head = (self._head + len(buffer)) % self.capacity;
+        self._head = (self._head + len(buffer)) % self.capacity
         self._occupancy = self.occupancy + len(buffer)
 
     def popleft(self, buffer):
+        """
+        Fill all buffer elements with the ring buffer data.
+
+        Parameters
+        ----------
+        buffer : ndarray
+            array where the elements will be copied into
+        """
         if len(buffer) > self.capacity:
             raise ValueError("Input buffer is bigger than ring capacity.")
 
@@ -113,7 +136,7 @@ class RingBuffer(Injector):
             _dst = buffer[_remainer:]
             self._xp.copyto(_dst, _src)
 
-        self._tail = (self._tail + len(buffer)) % self.capacity;
+        self._tail = (self._tail + len(buffer)) % self.capacity
         self._occupancy = self.occupancy - len(buffer)
 
         return True

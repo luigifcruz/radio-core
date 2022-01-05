@@ -12,7 +12,7 @@ class Buffer(Injector):
     The Buffer class manage a CPU or GPU array.
 
     The CUDA (GPU) array is allocated by cuSignal. The memory is
-    manage. Therefore, it's DMA'ed to the CPU automatically.
+    managed. Therefore, it's DMA'ed to the CPU automatically.
 
     Parameters
     ----------
@@ -73,7 +73,7 @@ class Buffer(Injector):
 
     @property
     def data(self):
-        """Returns the pointer of the inner buffer."""
+        """Return the pointer of the inner buffer."""
         return self._buffer
 
     @contextmanager
