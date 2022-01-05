@@ -80,11 +80,12 @@ class Tuner(Injector):
         bandwidth : float
             desired bandwidth
         """
-        if bandwidth >= self._input_bandwidth:
-            self._input_bandwidth = bandwidth
-            self.__recalculate()
-        raise ValueError("requested bandwidth is too low, minimum "
-                         f"is {self._input_bandwidth}")
+        if bandwidth < self._input_bandwidth:
+            raise ValueError(f"requested bandwidth ({bandwidth}) is too low, "
+                             f"minimum is {self._input_bandwidth}")
+
+        self._input_bandwidth = bandwidth
+        self.__recalculate()
 
     def add_channel(self, frequency: float, bandwidth: float):
         """
@@ -137,8 +138,8 @@ class Tuner(Injector):
         channel_index : int
             index of the channel
         """
-        _channel = self._bounds[channel_index]
-        _roll_factor = self._input_frequency - _channel.center_frequency
+        _channel = self._bounds[int(channel_index)]
+        _roll_factor = int(self._input_frequency - _channel.center_frequency)
         _resample_factor = int(_channel.bandwidth)
 
         _tmp = self._xp.roll(self._buffer, _roll_factor)

@@ -4,22 +4,27 @@ import numpy as np
 import sounddevice as sd
 
 from SoapySDR import Device, SOAPY_SDR_CF32, SOAPY_SDR_RX
-from radiocore import Buffer, RingBuffer, FM, MFM, WBFM, Decimate
+from radiocore import Buffer, RingBuffer, FM, MFM, WBFM, Tuner
 
 enable_cuda: bool = False       # If True, enable CUDA demodulation.
-frequency: float = 96.9e6       # Set the FM station frequency.
 deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and S. Korea.
 input_rate: float = 10e6        # SDR RX bandwidth.
-demod_rate: float = 240e3       # FM station bandwidth. (240-256 kHz).
+demod_rate: float = 250e3       # FM station bandwidth. (240-256 kHz).
 audio_rate: float = 48e3        # Audio bandwidth (32-48 kHz).
 device_rate: int = 1024         # Device buffer size.
 device_name: str = "airspy"     # SoapySDR device string.
-demodulator = WBFM               # Demodulator (WBFM, MFM, or FM).
+demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
+
+# Create Tuner and channels to be demoded.
+tuner = Tuner(cuda=enable_cuda)
+tuner.add_channel(94.5e6, demod_rate)
+tuner.add_channel(97.5e6, demod_rate)
+tuner.add_channel(96.9e6, demod_rate)
+tuner.request_bandwidth(input_rate)
 
 # Queue and shared memory allocation.
 print("Configuring DSP...")
-decim = Decimate(input_rate, demod_rate, zero_phase=True, cuda=enable_cuda)
-demod = demodulator(demod_rate, audio_rate, cuda=enable_cuda)
+demod = [demodulator(demod_rate, audio_rate, cuda=enable_cuda) for _ in tuner.channels]
 ring_buffer = RingBuffer(input_rate * 10, dtype=np.complex64, cuda=enable_cuda)
 output_buffer = Buffer(input_rate, dtype=np.complex64, cuda=enable_cuda)
 
@@ -27,8 +32,8 @@ output_buffer = Buffer(input_rate, dtype=np.complex64, cuda=enable_cuda)
 print("Configuring device...")
 sdr = Device({"driver": device_name})
 sdr.setGainMode(SOAPY_SDR_RX, 0, True)
-sdr.setSampleRate(SOAPY_SDR_RX, 0, input_rate)
-sdr.setFrequency(SOAPY_SDR_RX, 0, frequency)
+sdr.setSampleRate(SOAPY_SDR_RX, 0, tuner.input_bandwidth)
+sdr.setFrequency(SOAPY_SDR_RX, 0, tuner.input_frequency)
 rx = sdr.setupStream(SOAPY_SDR_RX, SOAPY_SDR_CF32)
 
 
@@ -37,9 +42,12 @@ def process(outdata, *_):
     if not ring_buffer.popleft(output_buffer.data):
         return
 
-    demoded = demod.run(decim.run(output_buffer.data))
+    radio_buffers = tuner.load(output_buffer.data)
 
-    if demod.channels == 2:
+    for i, _ in enumerate(tuner.channels):
+        demoded = demod[i].run(tuner.run(i))
+
+    if demod[i].channels == 2:
         outdata[:] = np.dstack(demoded)
     else:
         outdata[:, 0] = demoded
@@ -49,7 +57,7 @@ def process(outdata, *_):
 print("Starting device and audio stream...")
 sdr.activateStream(rx)
 stream = sd.OutputStream(blocksize=int(audio_rate), callback=process,
-                         samplerate=int(audio_rate), channels=demod.channels)
+                         samplerate=int(audio_rate), channels=demod[0].channels)
 
 try:
     print("Starting playback...")

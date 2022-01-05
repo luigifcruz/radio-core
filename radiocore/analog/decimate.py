@@ -31,8 +31,6 @@ class Decimate(Injector):
         self._input_size: int = int(input_size)
         self._output_size: int = int(output_size)
 
-        self._rate: int = self._input_size // self._output_size
-
         super().__init__(cuda)
 
     def run(self, input_sig):
@@ -48,16 +46,6 @@ class Decimate(Injector):
             raise ValueError("input_sig size and input_size mismatch")
 
         _tmp = self._xp.asarray(input_sig)
-
-        if self._rate != 1:
-            if self._cuda:
-                _tmp = self._xs.decimate(_tmp, self._rate,
-                                         zero_phase=self._phase)
-            else:
-                _tmp = self._xs.decimate(_tmp, self._rate, ftype="fir",
-                                         zero_phase=self._phase)
-
-        if len(_tmp) != self._output_size:
-            _tmp = self._xs.resample(_tmp, self._output_size)
+        _tmp = self._xs.resample(_tmp, self._output_size, window="hann")
 
         return _tmp

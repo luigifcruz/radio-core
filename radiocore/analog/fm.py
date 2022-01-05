@@ -55,6 +55,7 @@ class FM(Injector):
             raise ValueError("input_sig size and input_size mismatch")
 
         _tmp = self._xp.asarray(input_sig)
+        _tmp -= self._xp.mean(_tmp)
         _tmp = self._xp.angle(_tmp)
         _tmp = self._xp.unwrap(_tmp)
         _tmp = self._xp.diff(_tmp)

@@ -130,11 +130,12 @@ class RingBuffer(Injector):
             _dst = buffer
             self.__copy(_dst, _src)
         else:
+            _remainer = self.capacity - self._tail
+
             _src = self._buffer[self._tail:self.capacity]
-            _dst = buffer
+            _dst = buffer[:_remainer]
             self.__copy(_dst, _src)
 
-            _remainer = self.capacity - self._tail
             _src = self._buffer[:len(buffer)-_remainer]
             _dst = buffer[_remainer:]
             self.__copy(_dst, _src)
