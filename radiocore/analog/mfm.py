@@ -59,10 +59,11 @@ class MFM(Injector):
         numpy_output: bool
             copy buffer to the cpu if cuda is enabled (default True)
         """
-        _tmp = self._fm_demod.run(input_sig, False)
+        _tmp = self._fm_demod.run(input_sig, False)[:, 0]
         _tmp = self._deemphasis.run(_tmp)
         _tmp -= self._xp.mean(_tmp)
         _tmp = self._xp.clip(_tmp, -0.999, 0.999)
+        _tmp = self._xp.expand_dims(_tmp, axis=1)
 
         if self._cuda and numpy_output:
             return self._xp.asnumpy(_tmp)

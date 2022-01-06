@@ -77,7 +77,7 @@ class WBFM(Injector):
         numpy_output: bool
             copy buffer to the cpu if cuda is enabled (default True)
         """
-        _tmp = self._fm_demod.run(input_sig, False)
+        _tmp = self._fm_demod.run(input_sig, False)[:, 0]
 
         # Filter pilot and update PLL.
         self._pll.step(self._plt_filter.run(_tmp))
@@ -102,8 +102,9 @@ class WBFM(Injector):
         _l = self._xp.clip(_l, -0.999, 0.999)
         _r = self._xp.clip(_r, -0.999, 0.999)
 
-        if self._cuda and numpy_output:
-            _l = self._xp.asnumpy(_l)
-            _r = self._xp.asnumpy(_r)
+        _lr = self._xp.dstack((_l, _r))
 
-        return _l, _r
+        if self._cuda and numpy_output:
+            _lr = self._xp.asnumpy(_lr)
+
+        return _lr

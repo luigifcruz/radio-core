@@ -125,7 +125,7 @@ class Tuner(Injector):
             input signal buffer with one second worth of samples
         """
         _tmp = self._xp.asarray(input_signal)
-        self._buffer = self._xp.fft.fft(_tmp)
+        self._buffer = self._fft.fft(_tmp)
 
     def run(self, channel_index: int):
         """

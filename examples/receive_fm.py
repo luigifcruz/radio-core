@@ -12,12 +12,7 @@ def process(outdata, *_):
     if not ring_buffer.popleft(output_buffer.data):
         return
 
-    demoded = demod.run(decim.run(output_buffer.data))
-
-    if demod.channels == 2:
-        outdata[:] = np.dstack(demoded)
-    else:
-        outdata[:, 0] = demoded
+    outdata[:] = demod.run(decim.run(output_buffer.data))
 
 
 def receive():
@@ -32,7 +27,7 @@ def receive():
         stream.start()
 
 
-enable_cuda: bool = True       # If True, enable CUDA demodulation.
+enable_cuda: bool = False       # If True, enable CUDA demodulation.
 frequency: float = 96.9e6       # Set the FM station frequency.
 deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and Korea.
 input_rate: float = 10e6        # SDR RX bandwidth.

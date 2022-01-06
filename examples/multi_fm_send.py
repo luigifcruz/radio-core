@@ -13,10 +13,10 @@ def process():
 
     for i, c in enumerate(tuner.channels):
         demoded = demod[i].run(tuner.run(i))
+        print(demoded.dtype)
 
         address = int(c.center_frequency).to_bytes(4, byteorder='little')
-        payload = np.dstack(demoded).tobytes()
-        socket.send_multipart([address, payload])
+        socket.send_multipart([address, demoded.tobytes()])
 
 def receive():
     sdr.readStream(rx, [input_buffer.data], device_rate, timeoutUs=2**37)
@@ -25,14 +25,14 @@ def receive():
     if ring_buffer.popleft(output_buffer.data):
         process()
 
-enable_cuda: bool = True        # If True, enable CUDA demodulation.
+enable_cuda: bool = False        # If True, enable CUDA demodulation.
 deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and S. Korea.
 input_rate: float = 10e6        # SDR RX bandwidth.
 demod_rate: float = 250e3       # FM station bandwidth. (240-256 kHz).
 audio_rate: float = 48e3        # Audio bandwidth (32-48 kHz).
 device_rate: int = 1024         # Device buffer size.
 device_name: str = "airspy"     # SoapySDR device string.
-demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
+demodulator = FM              # Demodulator (WBFM, MFM, or FM).
 
 # Setup ZeroMQ server.
 context = zmq.Context()

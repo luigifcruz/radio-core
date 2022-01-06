@@ -8,6 +8,9 @@ import sounddevice as sd
 
 # Define demodulation callback. This should not block.
 def process(outdata, *_):
+    if que.empty():
+        return
+
     outdata[:] = que.get_nowait()
 
 def receive():
@@ -18,7 +21,7 @@ def receive():
 
 frequency: float = 96.9e6             # Set the FM station frequency.
 audio_rate: float = 48e3              # Audio bandwidth (32-48 kHz).
-channels: float = 2                   #
+channels: float = 1                   #
 server: str = "tcp://localhost:5555"  # Server address.
 
 # Setup ZeroMQ client.
