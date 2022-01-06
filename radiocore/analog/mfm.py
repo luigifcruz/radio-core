@@ -61,7 +61,6 @@ class MFM(Injector):
         """
         _tmp = self._fm_demod.run(input_sig, False)[:, 0]
         _tmp = self._deemphasis.run(_tmp)
-        _tmp -= self._xp.mean(_tmp)
         _tmp = self._xp.clip(_tmp, -0.999, 0.999)
         _tmp = self._xp.expand_dims(_tmp, axis=1)
 

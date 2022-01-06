@@ -97,9 +97,6 @@ class WBFM(Injector):
         # Stack channels.
         _lr = self._xp.dstack((_l, _r))
 
-        # Remove DC from signal.
-        _lr -= self._xp.mean(_lr)
-
         # Ensure Bounds
         _lr = self._xp.clip(_lr, -0.999, 0.999)
 
