@@ -94,15 +94,14 @@ class WBFM(Injector):
         _l = self._left_deemphasis.run(_l)
         _r = self._right_deemphasis.run(_r)
 
+        # Stack channels.
+        _lr = self._xp.dstack((_l, _r))
+
         # Remove DC from signal.
-        _l -= self._xp.mean(_l)
-        _r -= self._xp.mean(_r)
+        _lr -= self._xp.mean(_lr)
 
         # Ensure Bounds
-        _l = self._xp.clip(_l, -0.999, 0.999)
-        _r = self._xp.clip(_r, -0.999, 0.999)
-
-        _lr = self._xp.dstack((_l, _r))
+        _lr = self._xp.clip(_lr, -0.999, 0.999)
 
         if self._cuda and numpy_output:
             _lr = self._xp.asnumpy(_lr)

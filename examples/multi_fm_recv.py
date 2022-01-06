@@ -11,17 +11,18 @@ def process(outdata, *_):
     if que.empty():
         return
 
-    outdata[:] = que.get_nowait()
+    outdata[:] = que.get_nowait()[0]
 
 def receive():
-    [address, payload] = socket.recv_multipart()
+    [_, payload] = socket.recv_multipart()
     audio = np.frombuffer(payload, dtype=np.float32)
+    audio = audio.reshape((len(audio)//channels, channels))
     que.put_nowait([audio])
 
 
 frequency: float = 96.9e6             # Set the FM station frequency.
 audio_rate: float = 48e3              # Audio bandwidth (32-48 kHz).
-channels: float = 1                   #
+channels: float = 2                   # Number of audio channels (2 for Stereo).
 server: str = "tcp://localhost:5555"  # Server address.
 
 # Setup ZeroMQ client.

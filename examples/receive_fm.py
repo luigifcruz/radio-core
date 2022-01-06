@@ -35,7 +35,7 @@ demod_rate: float = 250e3       # FM station bandwidth. (240-256 kHz).
 audio_rate: float = 48e3        # Audio bandwidth (32-48 kHz).
 device_rate: int = 1024         # Device buffer size.
 device_name: str = "airspy"     # SoapySDR device string.
-demodulator = FM              # Demodulator (WBFM, MFM, or FM).
+demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
 
 # Start DSP processors.
 print("Configuring DSP...")

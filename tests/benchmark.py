@@ -3,6 +3,7 @@ from timeit import timeit
 from radiocore import WBFM, MFM, FM, Decimate, Buffer, Tuner
 import warnings
 
+N_ITER = 50
 
 class FmBenchmark:
 
@@ -10,7 +11,7 @@ class FmBenchmark:
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.cuda = cuda
-        self.iterations = 5
+        self.iterations = N_ITER
 
         self.wbfm = WBFM(self.input_size, self.output_size, cuda=cuda)
         self.mfm = MFM(self.input_size, self.output_size, cuda=cuda)
@@ -35,7 +36,7 @@ class DecimateBenchmark:
         self.input_size = int(input_size)
         self.output_size = int(output_size)
         self.cuda = cuda
-        self.iterations = 5
+        self.iterations = N_ITER
 
         self.decim = Decimate(self.input_size, self.output_size, cuda=cuda)
         self.buff = Buffer(self.input_size, dtype=np.complex64, cuda=cuda)
@@ -56,7 +57,7 @@ class TunerBenchmark:
         self.input_size = int(input_size)
         self.channel_size = int(channel_size)
         self.cuda = cuda
-        self.iterations = 5
+        self.iterations = N_ITER
 
         self.tuner = Tuner(cuda=self.cuda)
         self.tuner.add_channel(94.5e6, self.channel_size)
@@ -73,7 +74,7 @@ class TunerBenchmark:
     def test(self):
         print('#### Tuner Benchmark (Input size: {}, Channel size: {}, CUDA: {}):'
               .format(self.input_size, self.channel_size, self.cuda))
-        self.eval('self.tuner.load(self.buff.data);self.tuner.run(0);', 'Decimate')
+        self.eval('self.tuner.load(self.buff.data);self.tuner.run(0);', 'Tuner')
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")

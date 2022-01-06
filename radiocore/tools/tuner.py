@@ -47,6 +47,7 @@ class Tuner(Injector):
         self._cuda = cuda
         super().__init__(self._cuda)
 
+        self._win = None
         self._buffer = None
         self._input_frequency: int = 0.0
         self._input_bandwidth: int = 0.0
@@ -85,7 +86,6 @@ class Tuner(Injector):
                              f"minimum is {self._input_bandwidth}")
 
         self._input_bandwidth = bandwidth
-        self.__recalculate()
 
     def add_channel(self, frequency: float, bandwidth: float):
         """
@@ -142,9 +142,13 @@ class Tuner(Injector):
         _roll_factor = int(self._input_frequency - _channel.center_frequency)
         _resample_factor = int(_channel.bandwidth)
 
+        if self._win is None:
+            self._win = self._xs.get_window("hamm", int(self._input_bandwidth))
+            self._win = self._fft.fftshift(self._win)
+
         _tmp = self._xp.roll(self._buffer, _roll_factor)
         return self._xs.resample(_tmp, _resample_factor,
-                                 window="hann", domain="freq")
+                                 window=self._win, domain="freq")
 
     def __recalculate(self):
         _lower_freq = min([_ch.lower_frequency for _ch in self._bounds])

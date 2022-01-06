@@ -33,6 +33,9 @@ class Decimate(Injector):
 
         super().__init__(cuda)
 
+        self._win = self._xs.get_window("hamm", self._input_size)
+        self._win = self._fft.fftshift(self._win)
+
     def run(self, input_sig):
         """
         Decimate the input signal and output the result.
@@ -46,6 +49,6 @@ class Decimate(Injector):
             raise ValueError("input_sig size and input_size mismatch")
 
         _tmp = self._xp.asarray(input_sig)
-        _tmp = self._xs.resample(_tmp, self._output_size, window="hann")
+        _tmp = self._xs.resample(_tmp, self._output_size, window=self._win)
 
         return _tmp

@@ -21,7 +21,7 @@ class Bandpass(Injector):
     num_taps : int
         number of filter taps (default is 51)
     window : str
-        window filter function (default is hann)
+        window filter function (default is hamm)
     cuda : bool
         use the GPU for processing (default is False)
     """
@@ -32,7 +32,7 @@ class Bandpass(Injector):
                  stop_freq: Union[int, float],
                  dtype: str = "float32",
                  num_taps: int = 51,
-                 window: str = "hann",
+                 window: str = "hamm",
                  cuda: bool = False):
         """Initialize the Bandpass class."""
         self._cuda: bool = cuda
