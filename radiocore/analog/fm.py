@@ -59,7 +59,7 @@ class FM(Injector):
         _tmp = self._xp.angle(_tmp)
         _tmp = self._xp.unwrap(_tmp)
         _tmp = self._xp.diff(_tmp)
-        _tmp = self._xp.concatenate((_tmp, self._xp.array([0])))
+        _tmp = self._xp.pad(_tmp, (0, 1))
         _tmp = _tmp / self._xp.pi
         _tmp = self._decimate.run(_tmp)
 

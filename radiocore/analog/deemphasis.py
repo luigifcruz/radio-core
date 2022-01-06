@@ -17,14 +17,17 @@ class Deemphasis(Injector):
     rate: float
         audio deemphasis rate, 75e-6 for americas,
         otherwise 50e-6 (default is 75e-6)
+    dtype: str
+        type of the output signal (default is float32)
     cuda : bool
         use the GPU for processing (default is False)
     """
 
-    def __init__(self, input_size: Union[int, float],
-                 rate: float = 75e-6, cuda: bool = False):
+    def __init__(self, input_size: Union[int, float], rate: float = 75e-6,
+                 dtype: str = "float32", cuda: bool = False):
         """Initialize the Deemphasis class."""
         self._cuda: bool = cuda
+        self._dtype: str = dtype
         self._rate: float = rate
         self._input_size: int = int(input_size)
 
@@ -37,10 +40,13 @@ class Deemphasis(Injector):
         # Convert IIR taps to FIR. This improves processing time on the GPU.
         _c = self._ss.dlti(*_b)
         _, _d = self._ss.dimpulse(_c, n=51)
-        _e = self._np.squeeze(_d)
+        _b = self._np.squeeze(_d)
+        _b = self._xp.array(_b, dtype=self._dtype)
+        _a = self._xp.array(1.0, dtype=self._dtype)
+        self._taps = (_b, _a)
 
-        self._taps = (_e, 1.0)
-        self._state = self._xs.lfilter_zi(*self._taps)
+        _zi = self._xs.lfilter_zi(*self._taps)
+        self._state = self._xp.array(_zi, dtype=self._dtype)
 
     def run(self, input_sig):
         """

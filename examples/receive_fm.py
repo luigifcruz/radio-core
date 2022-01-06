@@ -32,7 +32,7 @@ def receive():
         stream.start()
 
 
-enable_cuda: bool = False       # If True, enable CUDA demodulation.
+enable_cuda: bool = True       # If True, enable CUDA demodulation.
 frequency: float = 96.9e6       # Set the FM station frequency.
 deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and Korea.
 input_rate: float = 10e6        # SDR RX bandwidth.
@@ -40,7 +40,7 @@ demod_rate: float = 250e3       # FM station bandwidth. (240-256 kHz).
 audio_rate: float = 48e3        # Audio bandwidth (32-48 kHz).
 device_rate: int = 1024         # Device buffer size.
 device_name: str = "airspy"     # SoapySDR device string.
-demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
+demodulator = FM              # Demodulator (WBFM, MFM, or FM).
 
 # Start DSP processors.
 print("Configuring DSP...")
@@ -48,6 +48,7 @@ demod = demodulator(demod_rate, audio_rate, cuda=enable_cuda)
 decim = Decimate(input_rate, demod_rate, zero_phase=True, cuda=enable_cuda)
 
 # Allocate buffers.
+print("Allocating buffers...")
 ring_buffer = RingBuffer(input_rate * 10, dtype=np.complex64, cuda=enable_cuda)
 output_buffer = Buffer(input_rate, dtype=np.complex64, cuda=enable_cuda)
 input_buffer = Buffer(device_rate, dtype=np.complex64, cuda=enable_cuda)

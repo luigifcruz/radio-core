@@ -16,6 +16,8 @@ class Bandpass(Injector):
         start of the bandpass window, value in Hz
     stop_freq : int, float
         end of the bandpass window, value in Hz
+    dtype: str
+        type of the output signal (default is float32)
     num_taps : int
         number of filter taps (default is 51)
     window : str
@@ -28,11 +30,13 @@ class Bandpass(Injector):
                  input_size: Union[int, float],
                  start_freq: Union[int, float],
                  stop_freq: Union[int, float],
+                 dtype: str = "float32",
                  num_taps: int = 51,
                  window: str = "hann",
                  cuda: bool = False):
         """Initialize the Bandpass class."""
         self._cuda: bool = cuda
+        self._dtype: str = dtype
         self._window: str = window
         self._num_taps: int = int(num_taps)
         self._input_size: int = int(input_size)
@@ -43,11 +47,14 @@ class Bandpass(Injector):
 
         _lo = self.__nyq(self._start_freq)
         _hi = self.__nyq(self._stop_freq)
-        _tp = self._xs.firwin(self._num_taps, [_lo, _hi], pass_zero=False,
-                              window=self._window)
+        _b = self._xs.firwin(self._num_taps, [_lo, _hi],
+                             pass_zero=False, window=self._window)
+        _b = self._xp.array(_b, dtype=self._dtype)
+        _a = self._xp.array([1.0], dtype=self._dtype)
+        self._taps = (_b, _a)
 
-        self._taps = (_tp, 1.0)
-        self._state = self._xs.lfilter_zi(*self._taps)
+        _zi = self._xs.lfilter_zi(*self._taps)
+        self._state = self._xp.array(_zi, dtype=self._dtype)
 
     def __nyq(self, freq_hz):
         return (freq_hz / (0.5 * self._input_size))
