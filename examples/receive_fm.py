@@ -1,5 +1,6 @@
 import sys
 
+import queue
 import numpy as np
 import sounddevice as sd
 from threading import Thread
@@ -60,38 +61,73 @@ class SdrDevice(Thread):
         self.running = False
 
 
+class Dsp(Thread):
+
+    def __init__(self, config: Config, input: RingBuffer):
+        super().__init__()
+        self.config = config
+        self.input = input
+
+        print("Configuring DSP...")
+        self.demod = self.config.demodulator(self.config.demod_rate,
+                                             self.config.audio_rate,
+                                             cuda=self.config.enable_cuda)
+        self.decim = Decimate(self.config.input_rate,
+                              self.config.demod_rate,
+                              cuda=self.config.enable_cuda)
+
+        print("Allocating DSP buffers...")
+        self.que = queue.Queue()
+        self.tmp_buffer = Buffer(self.config.input_rate, dtype=np.complex64,
+                                 cuda=self.config.enable_cuda)
+
+    @property
+    def output(self) -> queue.Queue:
+        return self.que
+
+    def run(self):
+        self.running = True
+
+        while self.running:
+            if not self.input.popleft(self.tmp_buffer.data):
+                continue
+
+            tmp = self.decim.run(self.tmp_buffer.data)
+            tmp = self.demod.run(tmp)
+
+            self.que.put_nowait(tmp)
+
+    def stop(self):
+        self.running = False
+
+
 if __name__ == "__main__":
     config = Config()
 
-    # Start DSP processors.
-    print("Configuring DSP...")
-    demod = config.demodulator(config.demod_rate, config.audio_rate, cuda=config.enable_cuda)
-    decim = Decimate(config.input_rate, config.demod_rate, cuda=config.enable_cuda)
-
-    # Allocate buffers.
-    print("Allocating buffers...")
-    output_buffer = Buffer(config.input_rate, dtype=np.complex64, cuda=config.enable_cuda)
-
     # Configure SDR device thread.
     rx = SdrDevice(config)
+    dsp = Dsp(config, rx.output)
 
 
     # Define demodulation callback. This should not block.
     def process(outdata, *_):
-        if not rx.output.popleft(output_buffer.data):
-            return
-        outdata[:] = demod.run(decim.run(output_buffer.data))
+        if not dsp.output.empty():
+            outdata[:] = dsp.output.get_nowait()
 
 
     # Configure sound device stream.
-    stream = sd.OutputStream(blocksize=int(config.audio_rate), callback=process,
-                             samplerate=int(config.audio_rate), channels=demod.channels)
+    stream = sd.OutputStream(blocksize=int(config.audio_rate),
+                             callback=process,
+                             samplerate=int(config.audio_rate),
+                             channels=dsp.demod.channels)
 
     try:
         print("Starting playback...")
         rx.start()
+        dsp.start()
         stream.start()
         rx.join()
     except KeyboardInterrupt:
+        dsp.stop()
         rx.stop()
         sys.exit('\nInterrupted by user. Closing...')
