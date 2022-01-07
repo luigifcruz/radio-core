@@ -31,7 +31,7 @@ class FM(Injector):
         self._output_size: int = int(output_size)
 
         self._decimate = Decimate(self._input_size, self._output_size,
-                                  zero_phase=True, cuda=self._cuda)
+                                  cuda=self._cuda)
 
         super().__init__(cuda)
 

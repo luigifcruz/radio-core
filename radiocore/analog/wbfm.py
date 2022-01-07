@@ -51,7 +51,7 @@ class WBFM(Injector):
         self._pll = PLL(cuda=self._cuda)
 
         self._decimate = Decimate(self._input_size, self._output_size,
-                                  zero_phase=True, cuda=self._cuda)
+                                  cuda=self._cuda)
 
         self._left_deemphasis = Deemphasis(self._output_size, deemphasis_rate,
                                            cuda=self._cuda)
