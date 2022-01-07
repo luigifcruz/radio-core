@@ -54,6 +54,7 @@ class SdrDevice(Thread):
         self.sdr.closeStream(self.rx)
         self.running = False
 
+
 # Define demodulation callback. This should not block.
 def process(outdata, *_):
     print(ring_buffer.occupancy)
@@ -62,32 +63,31 @@ def process(outdata, *_):
 
     outdata[:] = demod.run(decim.run(output_buffer.data))
 
-config = Config()
+if __name__ == "__main__":
+    config = Config()
 
-# Start DSP processors.
-print("Configuring DSP...")
-demod = config.demodulator(config.demod_rate, config.audio_rate, cuda=config.enable_cuda)
-decim = Decimate(config.input_rate, config.demod_rate, cuda=config.enable_cuda)
+    # Start DSP processors.
+    print("Configuring DSP...")
+    demod = config.demodulator(config.demod_rate, config.audio_rate, cuda=config.enable_cuda)
+    decim = Decimate(config.input_rate, config.demod_rate, cuda=config.enable_cuda)
 
-# Allocate buffers.
-print("Allocating buffers...")
-ring_buffer = RingBuffer(config.input_rate * 10, dtype=np.complex64, cuda=config.enable_cuda)
-output_buffer = Buffer(config.input_rate, dtype=np.complex64, cuda=config.enable_cuda)
+    # Allocate buffers.
+    print("Allocating buffers...")
+    ring_buffer = RingBuffer(config.input_rate * 10, dtype=np.complex64, cuda=config.enable_cuda)
+    output_buffer = Buffer(config.input_rate, dtype=np.complex64, cuda=config.enable_cuda)
 
-# Start collecting data.
-print("Starting device and audio stream...")
-stream = sd.OutputStream(blocksize=int(config.audio_rate), callback=process,
-                         samplerate=int(config.audio_rate), channels=demod.channels)
+    # Configure SDR device thread.
+    rx = SdrDevice(config, ring_buffer)
 
-rx = SdrDevice(config, ring_buffer)
-rx.start()
-stream.start()
+    # Configure sound device stream.
+    stream = sd.OutputStream(blocksize=int(config.audio_rate), callback=process,
+                             samplerate=int(config.audio_rate), channels=demod.channels)
 
-print("join")
-rx.join()
-print("outjoin")
-
-try:
-    print("Starting playback...")
-except KeyboardInterrupt:
-    sys.exit('\nInterrupted by user. Closing...')
+    try:
+        print("Starting playback...")
+        rx.start()
+        stream.start()
+        rx.join()
+    except KeyboardInterrupt:
+        rx.stop()
+        sys.exit('\nInterrupted by user. Closing...')
