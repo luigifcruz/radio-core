@@ -24,10 +24,9 @@ class Config:
 
 class SdrDevice(Thread):
 
-    def __init__(self, config: Config, ring_buffer: RingBuffer):
+    def __init__(self, config: Config):
         super().__init__()
         self.config = config
-        self.ring_buffer = ring_buffer
 
         print("Configuring SDR device...")
         self.sdr = Device({"driver": self.config.device_name})
@@ -37,31 +36,29 @@ class SdrDevice(Thread):
         self.rx = self.sdr.setupStream(SOAPY_SDR_RX, SOAPY_SDR_CF32)
 
         print("Allocating SDR device buffers...")
-        self.buffer = Buffer(self.config.device_rate, dtype=np.complex64,
-                             cuda=self.config.enable_cuda)
+        self.tmp_buffer = Buffer(self.config.device_rate, dtype=np.complex64,
+                                 cuda=self.config.enable_cuda)
+        self.ring_buffer = RingBuffer(self.config.input_rate * 10,
+                                      dtype=np.complex64)
+
+    @property
+    def output(self) -> RingBuffer:
+        return self.ring_buffer
 
     def run(self):
         self.running = True
         self.sdr.activateStream(self.rx)
 
         while self.running:
-            self.sdr.readStream(self.rx, [self.buffer.data],
+            self.sdr.readStream(self.rx, [self.tmp_buffer.data],
                                 self.config.device_rate, timeoutUs=2**37)
-            self.ring_buffer.append(self.buffer.data)
+            self.ring_buffer.append(self.tmp_buffer.data)
 
     def stop(self):
         self.sdr.deactivateStream(self.rx)
         self.sdr.closeStream(self.rx)
         self.running = False
 
-
-# Define demodulation callback. This should not block.
-def process(outdata, *_):
-    print(ring_buffer.occupancy)
-    if not ring_buffer.popleft(output_buffer.data):
-        return
-
-    outdata[:] = demod.run(decim.run(output_buffer.data))
 
 if __name__ == "__main__":
     config = Config()
@@ -73,11 +70,18 @@ if __name__ == "__main__":
 
     # Allocate buffers.
     print("Allocating buffers...")
-    ring_buffer = RingBuffer(config.input_rate * 10, dtype=np.complex64, cuda=config.enable_cuda)
     output_buffer = Buffer(config.input_rate, dtype=np.complex64, cuda=config.enable_cuda)
 
     # Configure SDR device thread.
-    rx = SdrDevice(config, ring_buffer)
+    rx = SdrDevice(config)
+
+
+    # Define demodulation callback. This should not block.
+    def process(outdata, *_):
+        if not rx.output.popleft(output_buffer.data):
+            return
+        outdata[:] = demod.run(decim.run(output_buffer.data))
+
 
     # Configure sound device stream.
     stream = sd.OutputStream(blocksize=int(config.audio_rate), callback=process,
