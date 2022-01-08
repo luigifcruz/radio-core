@@ -1,24 +1,8 @@
 import sys
-
 import zmq
 import queue
 import numpy as np
 import sounddevice as sd
-
-
-# Define demodulation callback. This should not block.
-def process(outdata, *_):
-    if que.empty():
-        return
-
-    outdata[:] = que.get_nowait()[0]
-
-def receive():
-    [_, payload] = socket.recv_multipart()
-    audio = np.frombuffer(payload, dtype=np.float32)
-    audio = audio.reshape((len(audio)//channels, channels))
-    que.put_nowait([audio])
-
 
 frequency: float = 96.9e6             # Set the FM station frequency.
 audio_rate: float = 48e3              # Audio bandwidth (32-48 kHz).
@@ -37,14 +21,25 @@ socket.setsockopt(zmq.SUBSCRIBE, address)
 print("Allocating buffers...")
 que = queue.Queue()
 
-# Start collecting data.
-print("Starting device and audio stream...")
+# Define demodulation callback. This should not block.
+def process(outdata, *_):
+    if not que.empty():
+        outdata[:] = que.get_nowait()[0]
+
+# Configure sound device stream.
+print("Starting audio stream...")
 stream = sd.OutputStream(blocksize=int(audio_rate), callback=process,
                          samplerate=int(audio_rate), channels=channels)
-stream.start()
 
 try:
     print("Starting playback...")
-    while True: receive()
+    stream.start()
+
+    while True:
+        [_, payload] = socket.recv_multipart()
+        audio = np.frombuffer(payload, dtype=np.float32)
+        audio = audio.reshape((len(audio)//channels, channels))
+        que.put_nowait([audio])
+
 except KeyboardInterrupt:
     sys.exit('\nInterrupted by user. Closing...')
