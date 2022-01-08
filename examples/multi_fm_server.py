@@ -1,18 +1,18 @@
 import sys
-import queue
+import zmq
 import numpy as np
 import sounddevice as sd
 from threading import Thread
 from dataclasses import dataclass
 
 from SoapySDR import Device, SOAPY_SDR_CF32, SOAPY_SDR_RX
-from radiocore import Buffer, RingBuffer, FM, MFM, WBFM, Decimate
+from radiocore import Buffer, RingBuffer, FM, MFM, WBFM, Tuner
 
 
 @dataclass
 class Config:
     enable_cuda: bool = False       # If True, enable CUDA demodulation.
-    frequency: float = 96.9e6       # Set the FM station frequency.
+    frequency: float = 0.0          # The frequency will be set by the Tuner.
     deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and Korea.
     input_rate: float = 10e6        # SDR RX bandwidth.
     demod_rate: float = 250e3       # FM station bandwidth. (240-256 kHz).
@@ -63,39 +63,45 @@ class SdrDevice(Thread):
 
 class Dsp(Thread):
 
-    def __init__(self, config: Config, data_in: RingBuffer):
+    def __init__(self, config: Config, tuner: Tuner, socket, input: RingBuffer):
         super().__init__()
         self.config = config
-        self.data_in = data_in
+        self.input = input
+        self.tuner = tuner
+        self.socket = socket
 
         print("Configuring DSP...")
-        self.demod = self.config.demodulator(self.config.demod_rate,
+        self.demod = []
+        self.address = []
+
+        for _, c in enumerate(self.tuner.channels):
+            _demod = self.config.demodulator(self.config.demod_rate,
                                              self.config.audio_rate,
                                              cuda=self.config.enable_cuda)
-        self.decim = Decimate(self.config.input_rate,
-                              self.config.demod_rate,
-                              cuda=self.config.enable_cuda)
+            self.demod.append(_demod)
+
+            _address = int(c.center_frequency).to_bytes(4, byteorder='little')
+            self.address.append(_address)
 
         print("Allocating DSP buffers...")
-        self.que = queue.Queue()
         self.tmp_buffer = Buffer(self.config.input_rate, dtype=np.complex64,
                                  cuda=self.config.enable_cuda)
-
-    @property
-    def output(self) -> queue.Queue:
-        return self.que
 
     def run(self):
         self.running = True
 
         while self.running:
-            if not self.data_in.popleft(self.tmp_buffer.data):
+            if not self.input.popleft(self.tmp_buffer.data):
                 continue
 
-            tmp = self.decim.run(self.tmp_buffer.data)
-            tmp = self.demod.run(tmp)
+            tmp = self.tuner.load(self.tmp_buffer.data)
 
-            self.que.put_nowait(tmp)
+            for i, _ in enumerate(self.tuner.channels):
+                tmp = self.tuner.run(i)
+                tmp = self.demod[i].run(tmp)
+                tmp = tmp.tobytes()
+
+                self.socket.send_multipart([self.address[i], tmp])
 
     def stop(self):
         self.running = False
@@ -105,26 +111,28 @@ class Dsp(Thread):
 if __name__ == "__main__":
     config = Config()
 
+    # Configure ZeroMQ server.
+    context = zmq.Context()
+    context.setsockopt(zmq.IPV6, True)
+    socket = context.socket(zmq.PUB)
+    socket.bind("tcp://*:5555")
+
+    # Configure Tuner.
+    tuner = Tuner(cuda=config.enable_cuda)
+    tuner.add_channel(94.5e6, config.demod_rate)
+    tuner.add_channel(97.5e6, config.demod_rate)
+    tuner.add_channel(96.9e6, config.demod_rate)
+    tuner.request_bandwidth(config.input_rate)
+    config.frequency = tuner.input_frequency
+
     # Configure SDR device thread.
     rx = SdrDevice(config)
-    dsp = Dsp(config, rx.output)
-
-    # Define demodulation callback. This should not block.
-    def process(outdata, *_):
-        if not dsp.output.empty():
-            outdata[:] = dsp.output.get_nowait()
-
-    # Configure sound device stream.
-    stream = sd.OutputStream(blocksize=int(config.audio_rate),
-                             callback=process,
-                             samplerate=int(config.audio_rate),
-                             channels=dsp.demod.channels)
+    dsp = Dsp(config, tuner, socket, rx.output)
 
     try:
-        print("Starting playback...")
+        print("Starting processing...")
         rx.start()
         dsp.start()
-        stream.start()
         rx.join()
     except KeyboardInterrupt:
         dsp.stop()

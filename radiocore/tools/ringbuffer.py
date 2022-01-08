@@ -39,6 +39,8 @@ class RingBuffer(Injector):
         self._capacity: int = int(capacity)
         self._cuda: bool = cuda
         self._dtype = dtype
+
+        self._abort = False
         self._cv = Condition()
 
         self._occupancy: int = 0
@@ -115,7 +117,7 @@ class RingBuffer(Injector):
         with self._cv:
             self._cv.notify_all()
 
-    def popleft(self, buffer):
+    def popleft(self, buffer, timeout: float = 3.0):
         """
         Fill all buffer elements with the ring buffer data.
 
@@ -123,13 +125,16 @@ class RingBuffer(Injector):
         ----------
         buffer : ndarray
             array where the elements will be copied into
+        timeout : float, optional
+            how long in seconds the function should wait (default is 3)
         """
         if len(buffer) > self.capacity:
             raise ValueError("Input buffer is bigger than ring capacity.")
 
         with self._cv:
             while len(buffer) > self.occupancy:
-                self._cv.wait()
+                if not self._cv.wait(timeout):
+                    return  # Timeout reached. Returning.
 
         if (self.capacity - self._tail) >= len(buffer):
             _src = self._buffer[self._tail:self._tail+len(buffer)]
