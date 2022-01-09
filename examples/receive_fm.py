@@ -108,9 +108,10 @@ if __name__ == "__main__":
 
     # Define demodulation callback. This should not block.
     def process(outdata, *_):
-        if dsp.output.empty():
+        if not dsp.output.empty():
+            outdata[:] = dsp.output.get_nowait()
+        else:
             outdata[:] = 0.0
-        outdata[:] = dsp.output.get_nowait()
 
     # Configure sound device stream.
     stream = sd.OutputStream(blocksize=int(config.audio_rate),

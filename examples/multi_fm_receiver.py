@@ -23,9 +23,10 @@ que = queue.Queue()
 
 # Define demodulation callback. This should not block.
 def process(outdata, *_):
-    if que.empty():
+    if not que.empty():
+        outdata[:] = que.get_nowait()[0]
+    else:
         outdata[:] = 0.0
-    outdata[:] = que.get_nowait()[0]
 
 # Configure sound device stream.
 print("Starting audio stream...")
