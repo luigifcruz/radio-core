@@ -44,8 +44,7 @@ def test_buffer():
     print(a, a.occupancy)
 
     a.append([1, 1, 1, 1])
-    assert a.occupancy == 8
+    assert a.occupancy == 4
     assert a.capacity == 8
-    assert a.vacancy == 0
-    assert np.allclose(a.data, [1., 1., 1., 1., 1., 1., 1., 1.])
+    assert a.vacancy == 4
     print(a, a.occupancy)

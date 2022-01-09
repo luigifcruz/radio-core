@@ -75,6 +75,12 @@ class RingBuffer(Injector):
         """Return the backbuffer. Use with care."""
         return self._buffer
 
+    def reset(self):
+        """Reset ringbuffer state."""
+        self._tail = 0
+        self._head = 0
+        self._occupancy = 0
+
     def __str__(self) -> str:
         """Return printable version of the backbuffer."""
         return self._buffer.__str__()
@@ -101,8 +107,7 @@ class RingBuffer(Injector):
             if self._print_overflow:
                 print("overflow")
 
-            self._tail += len(buffer) - self.occupancy
-            self._occupancy += len(buffer) - self.occupancy
+            self.reset()
 
         if (self.capacity - self._head) >= len(buffer):
             self._buffer[self._head:self._head+len(buffer)] = buffer
