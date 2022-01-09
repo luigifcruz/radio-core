@@ -14,7 +14,7 @@ class Channel:
     frequency: float    # The FM station frequency.
     bandwidth: float    # The FM station bandwidth. (240-256 kHz).
     audio_fs: float     # The audio sample-rate.
-    demodulator: None   # The demodulator to use (WBFM, MFM, or FM).
+    demodulator: FM     # The demodulator to use (WBFM, MFM, or FM).
 
 
 @dataclass
@@ -25,7 +25,7 @@ class Config:
     deemphasis: float = 75e-6       # 75e-6 for Americas and Korea, otherwise 50e-6.
     channels = [
         Channel(96.9e6, 240e3, 48e3, WBFM),
-        Channel(94.5e6, 240e3, 48e3, WBFM),
+        Channel(94.5e6, 240e3, 48e3, MFM),
         Channel(97.5e6, 240e3, 48e3, FM),
     ]
 
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     dsp = Dsp(config, tuner, socket, rx.output)
 
     try:
-        print("Starting processing...")
+        print(f"Starting processing {len(config.channels)} radios...")
         rx.start()
         dsp.start()
         rx.join()

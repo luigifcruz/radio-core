@@ -22,7 +22,7 @@ class WBFM(Injector):
         input signal buffer size
     output_size : int, float
         output signal buffer size
-    deemphasis_rate: float
+    deemphasis: float
         audio deemphasis rate, 75e-6 for americas,
         otherwise 50e-6 (default is 75e-6)
     cuda : bool

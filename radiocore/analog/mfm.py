@@ -19,7 +19,7 @@ class MFM(Injector):
         input signal buffer size
     output_size : int, float
         output signal buffer size
-    deemphasis_rate: float
+    deemphasis: float
         audio deemphasis rate, 75e-6 for americas,
         otherwise 50e-6 (default is 75e-6)
     cuda : bool
@@ -29,7 +29,7 @@ class MFM(Injector):
     def __init__(self,
                  input_size: Union[int, float],
                  output_size: Union[int, float],
-                 deemphasis_rate: float = 75e-6,
+                 deemphasis: float = 75e-6,
                  cuda: bool = False):
         """Initialize the Mono-FM class."""
         self._cuda: bool = cuda
@@ -38,7 +38,7 @@ class MFM(Injector):
 
         self._fm_demod = FM(self._input_size, self._output_size,
                             cuda=self._cuda)
-        self._deemphasis = Deemphasis(self._output_size, deemphasis_rate,
+        self._deemphasis = Deemphasis(self._output_size, deemphasis,
                                       cuda=self._cuda)
 
         super().__init__(cuda)

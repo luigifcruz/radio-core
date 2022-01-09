@@ -17,6 +17,8 @@ class FM(Injector):
         input signal buffer size
     output_size : int, float
         output signal buffer size
+    deemphasis: float
+        not used in fm mode
     cuda : bool
         use the GPU for processing (default is False)
     """
