@@ -45,7 +45,7 @@ class SdrDevice(Thread):
         self.rx = self.sdr.setupStream(SOAPY_SDR_RX, SOAPY_SDR_CF32)
 
         print("Allocating SDR device buffers...")
-        self.buffer = RingBuffer(self.config.input_rate * 10,
+        self.buffer = RingBuffer(self.config.input_rate * 3,
                                  cuda=self.config.enable_cuda)
 
     @property
@@ -82,6 +82,9 @@ class Dsp(Thread):
         self.running = True
 
         while self.running:
+            occupancy = (self.data_in.occupancy / self.data_in.capacity) * 100
+            print(f"DSP buffer occupancy: {occupancy:.2f}%")
+
             if not self.data_in.popleft(tbuf.data):
                 continue
 

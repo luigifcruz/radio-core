@@ -35,7 +35,7 @@ class SdrDevice(Thread):
         self.rx = self.sdr.setupStream(SOAPY_SDR_RX, SOAPY_SDR_CF32)
 
         print("Allocating SDR device buffers...")
-        self.buffer = RingBuffer(self.config.input_rate * 10,
+        self.buffer = RingBuffer(self.config.input_rate * 3,
                                  cuda=self.config.enable_cuda)
 
     @property
