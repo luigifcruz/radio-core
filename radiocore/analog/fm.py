@@ -24,6 +24,7 @@ class FM(Injector):
     def __init__(self,
                  input_size: Union[int, float],
                  output_size: Union[int, float],
+                 deemphasis: float = 75e-6,
                  cuda: bool = False):
         """Initialize the FM class."""
         self._cuda: bool = cuda

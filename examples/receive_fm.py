@@ -13,11 +13,10 @@ from radiocore import Buffer, RingBuffer, FM, MFM, WBFM, Decimate
 class Config:
     enable_cuda: bool = False       # If True, enable CUDA demodulation.
     frequency: float = 96.9e6       # Set the FM station frequency.
-    deemphasis: float = 75e-6       # 50e-6 for World and 75e-6 for Americas and Korea.
+    deemphasis: float = 75e-6       # 75e-6 for Americas and Korea, otherwise 50e-6.
     input_rate: float = 10e6        # SDR RX bandwidth.
     demod_rate: float = 250e3       # FM station bandwidth. (240-256 kHz).
     audio_rate: float = 48e3        # Audio bandwidth (32-48 kHz).
-    device_rate: int = 1024         # Device buffer size.
     device_name: str = "airspy"     # SoapySDR device string.
     demodulator = WBFM              # Demodulator (WBFM, MFM, or FM).
 
@@ -30,29 +29,27 @@ class SdrDevice(Thread):
 
         print("Configuring SDR device...")
         self.sdr = Device({"driver": self.config.device_name})
-        self.sdr.setGainMode(SOAPY_SDR_RX, 0, True)
         self.sdr.setSampleRate(SOAPY_SDR_RX, 0, self.config.input_rate)
         self.sdr.setFrequency(SOAPY_SDR_RX, 0, self.config.frequency)
+        self.sdr.setGainMode(SOAPY_SDR_RX, 0, True)
         self.rx = self.sdr.setupStream(SOAPY_SDR_RX, SOAPY_SDR_CF32)
 
         print("Allocating SDR device buffers...")
-        self.tmp_buffer = Buffer(self.config.device_rate, dtype=np.complex64,
+        self.buffer = RingBuffer(self.config.input_rate * 10,
                                  cuda=self.config.enable_cuda)
-        self.ring_buffer = RingBuffer(self.config.input_rate * 10,
-                                      dtype=np.complex64)
 
     @property
     def output(self) -> RingBuffer:
-        return self.ring_buffer
+        return self.buffer
 
     def run(self):
-        self.running = True
+        tbuf = Buffer(2**16, cuda=self.config.enable_cuda)
         self.sdr.activateStream(self.rx)
+        self.running = True
 
         while self.running:
-            self.sdr.readStream(self.rx, [self.tmp_buffer.data],
-                                self.config.device_rate, timeoutUs=2**37)
-            self.ring_buffer.append(self.tmp_buffer.data)
+            c = self.sdr.readStream(self.rx, [tbuf.data], tbuf.size, timeoutUs=2**37)
+            self.buffer.append(tbuf.data[:c.ret])
 
     def stop(self):
         self.sdr.deactivateStream(self.rx)
@@ -71,6 +68,7 @@ class Dsp(Thread):
         print("Configuring DSP...")
         self.demod = self.config.demodulator(self.config.demod_rate,
                                              self.config.audio_rate,
+                                             deemphasis=self.config.deemphasis,
                                              cuda=self.config.enable_cuda)
         self.decim = Decimate(self.config.input_rate,
                               self.config.demod_rate,
@@ -78,21 +76,20 @@ class Dsp(Thread):
 
         print("Allocating DSP buffers...")
         self.que = queue.Queue()
-        self.tmp_buffer = Buffer(self.config.input_rate, dtype=np.complex64,
-                                 cuda=self.config.enable_cuda)
 
     @property
     def output(self) -> queue.Queue:
         return self.que
 
     def run(self):
+        tbuf = Buffer(self.config.input_rate, cuda=self.config.enable_cuda)
         self.running = True
 
         while self.running:
-            if not self.data_in.popleft(self.tmp_buffer.data):
+            if not self.data_in.popleft(tbuf.data):
                 continue
 
-            tmp = self.decim.run(self.tmp_buffer.data)
+            tmp = self.decim.run(tbuf.data)
             tmp = self.demod.run(tmp)
 
             self.que.put_nowait(tmp)

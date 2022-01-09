@@ -1,6 +1,7 @@
 """Defines a Tuner module."""
 
 from dataclasses import dataclass
+from typing import List
 
 from radiocore._internal import Injector
 
@@ -22,10 +23,16 @@ class Channel:
         bandwidth of the channel
     """
 
-    lower_frequency: float = 0.0
-    center_frequency: float = 0.0
-    higher_frequency: float = 0.0
-    bandwidth: float = 0.0
+    index: int
+    bandwidth: float
+    demodulator: None
+    lower_frequency: float
+    center_frequency: float
+    higher_frequency: float
+
+    @property
+    def address_bytes(self) -> bytes:
+        return int(self.center_frequency).to_bytes(4, byteorder='little')
 
 
 class Tuner(Injector):
@@ -51,7 +58,7 @@ class Tuner(Injector):
         self._buffer = None
         self._input_frequency: int = 0.0
         self._input_bandwidth: int = 0.0
-        self._bounds: Channel = []
+        self._bounds: List[Channel] = []
 
     @property
     def input_frequency(self) -> float:
@@ -63,8 +70,7 @@ class Tuner(Injector):
         """Return the bandwidth of the input data."""
         return self._input_bandwidth
 
-    @property
-    def channels(self) -> Channel:
+    def channels(self) -> List[Channel]:
         """Return list of registered channels."""
         return self._bounds
 
@@ -87,7 +93,7 @@ class Tuner(Injector):
 
         self._input_bandwidth = bandwidth
 
-    def add_channel(self, frequency: float, bandwidth: float):
+    def add_channel(self, frequency: float, bandwidth: float, demodulator):
         """
         Register a new channel to be processed.
 
@@ -101,10 +107,12 @@ class Tuner(Injector):
             output channel bandwidth
         """
         self._bounds.append(Channel(
+            index=len(self._bounds),
+            bandwidth=bandwidth,
+            demodulator=demodulator,
             lower_frequency=(frequency - (bandwidth / 2)),
             center_frequency=frequency,
             higher_frequency=(frequency + (bandwidth / 2)),
-            bandwidth=bandwidth
         ))
         self.__recalculate()
 

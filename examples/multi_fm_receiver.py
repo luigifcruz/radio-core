@@ -4,9 +4,9 @@ import queue
 import numpy as np
 import sounddevice as sd
 
-frequency: float = 96.9e6             # Set the FM station frequency.
+frequency: float = 97.5e6             # Set the FM station frequency.
 audio_rate: float = 48e3              # Audio bandwidth (32-48 kHz).
-channels: float = 2                   # Number of audio channels (2 for Stereo).
+channels: float = 1                   # Number of audio channels (2 for Stereo).
 server: str = "tcp://localhost:5555"  # Server address.
 
 # Setup ZeroMQ client.

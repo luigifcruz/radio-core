@@ -32,7 +32,7 @@ class WBFM(Injector):
     def __init__(self,
                  input_size: Union[int, float],
                  output_size: Union[int, float],
-                 deemphasis_rate: float = 75e-6,
+                 deemphasis: float = 75e-6,
                  cuda: bool = False):
         """Initialize the Stereo-FM class."""
         self._cuda: bool = cuda
@@ -53,10 +53,10 @@ class WBFM(Injector):
         self._decimate = Decimate(self._input_size, self._output_size,
                                   cuda=self._cuda)
 
-        self._left_deemphasis = Deemphasis(self._output_size, deemphasis_rate,
+        self._left_deemphasis = Deemphasis(self._output_size, deemphasis,
                                            cuda=self._cuda)
 
-        self._right_deemphasis = Deemphasis(self._output_size, deemphasis_rate,
+        self._right_deemphasis = Deemphasis(self._output_size, deemphasis,
                                             cuda=self._cuda)
 
         super().__init__(cuda)
