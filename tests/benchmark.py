@@ -60,9 +60,9 @@ class TunerBenchmark:
         self.iterations = N_ITER
 
         self.tuner = Tuner(cuda=self.cuda)
-        self.tuner.add_channel(94.5e6, self.channel_size)
-        self.tuner.add_channel(97.5e6, self.channel_size)
-        self.tuner.add_channel(96.9e6, self.channel_size)
+        self.tuner.add_channel(94.5e6, self.channel_size, FM)
+        self.tuner.add_channel(97.5e6, self.channel_size, FM)
+        self.tuner.add_channel(96.9e6, self.channel_size, FM)
         self.tuner.request_bandwidth(self.input_size)
 
         self.buff = Buffer(self.input_size, dtype=np.complex64, cuda=cuda)
