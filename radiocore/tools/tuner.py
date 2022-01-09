@@ -105,6 +105,8 @@ class Tuner(Injector):
             output channel center frequency
         bandwidth : float
             output channel bandwidth
+        demodulator : FM, MFM, or WBFM
+            demodulator instance
         """
         self._bounds.append(Channel(
             index=len(self._bounds),
