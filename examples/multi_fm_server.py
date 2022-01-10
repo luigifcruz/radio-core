@@ -1,7 +1,6 @@
-import sys
 import zmq
-import numpy as np
-import sounddevice as sd
+import sys
+import time
 from threading import Thread
 from dataclasses import dataclass
 
@@ -58,7 +57,7 @@ class SdrDevice(Thread):
         self.running = True
 
         while self.running:
-            c = self.sdr.readStream(self.rx, [tbuf.data], tbuf.size, timeoutUs=2**37)
+            c = self.sdr.readStream(self.rx, [tbuf.data], tbuf.size, timeoutUs=500000)
             self.buffer.append(tbuf.data[:c.ret])
 
     def stop(self):
@@ -136,7 +135,11 @@ if __name__ == "__main__":
         print(f"Starting processing {len(config.channels)} radios...")
         rx.start()
         dsp.start()
-        rx.join()
+
+        # Busy loop until interrupted by KeyboardInterrupt.
+        while True:
+            time.sleep(0.1)
+
     except KeyboardInterrupt:
         dsp.stop()
         rx.stop()

@@ -4,9 +4,9 @@ import queue
 import numpy as np
 import sounddevice as sd
 
-frequency: float = 97.5e6             # Set the FM station frequency.
+frequency: float = 96.9e6             # Set the FM station frequency.
 audio_rate: float = 48e3              # Audio bandwidth (32-48 kHz).
-channels: float = 1                   # Number of audio channels (2 for Stereo).
+channels: float = 2                   # Number of audio channels (2 for Stereo).
 server: str = "tcp://localhost:5555"  # Server address.
 
 # Setup ZeroMQ client.
@@ -39,7 +39,7 @@ try:
 
     while True:
         [_, payload] = socket.recv_multipart()
-        audio = np.frombuffer(payload, dtype=np.float32)
+        audio = np.frombuffer(payload, dtype=np.float64)
         audio = audio.reshape((len(audio)//channels, channels))
         que.put_nowait([audio])
 
