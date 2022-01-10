@@ -1,6 +1,7 @@
 import numpy as np
 from timeit import timeit
-from radiocore import WBFM, MFM, FM, Decimate, Buffer, Tuner
+
+from radiocore import WBFM, MFM, FM, Decimate, Buffer, Tuner, RingBuffer, HasCuda
 import warnings
 
 N_ITER = 50
@@ -76,14 +77,34 @@ class TunerBenchmark:
               .format(self.input_size, self.channel_size, self.cuda))
         self.eval('self.tuner.load(self.buff.data);self.tuner.run(0);', 'Tuner')
 
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
+
+    # Benchmark FM demodulators.
     FmBenchmark(256e3, 32e3, False).test()
+
+    if HasCuda():
+        FmBenchmark(256e3, 32e3, True).test()
+
+    print("=" * 80)
+
+
+    # Benchmark Decimation.
     DecimateBenchmark(10e6, 250e3, False).test()
     DecimateBenchmark(2.5e6, 250e3, False).test()
+
+    if HasCuda():
+        DecimateBenchmark(10e6, 250e3, True).test()
+        DecimateBenchmark(2.5e6, 250e3, True).test()
+
+    print("=" * 80)
+
+
+    # Benchmark Tuner.
     TunerBenchmark(10e6, 250e3, False).test()
 
-    FmBenchmark(256e3, 32e3, True).test()
-    DecimateBenchmark(10e6, 250e3, True).test()
-    DecimateBenchmark(2.5e6, 250e3, True).test()
-    TunerBenchmark(10e6, 250e3, True).test()
+    if HasCuda():
+        TunerBenchmark(10e6, 250e3, True).test()
+
+    print("=" * 80)
