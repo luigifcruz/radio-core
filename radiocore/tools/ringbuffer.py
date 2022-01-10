@@ -1,6 +1,6 @@
 """Defines a Ring Buffer module."""
 
-from threading import Condition
+from threading import Event
 from typing import Union
 
 from radiocore._internal import Injector
@@ -41,7 +41,7 @@ class RingBuffer(Injector):
         self._dtype = dtype
 
         self._abort = False
-        self._cv = Condition()
+        self._cv = Event()
 
         self._occupancy: int = 0
         self._head: int = 0
@@ -118,9 +118,7 @@ class RingBuffer(Injector):
 
         self._head = (self._head + len(buffer)) % self.capacity
         self._occupancy = self.occupancy + len(buffer)
-
-        with self._cv:
-            self._cv.notify_all()
+        self._cv.set()
 
     def popleft(self, buffer, timeout: float = 3.0):
         """
@@ -136,10 +134,10 @@ class RingBuffer(Injector):
         if len(buffer) > self.capacity:
             raise ValueError("Input buffer is bigger than ring capacity.")
 
-        with self._cv:
-            while len(buffer) > self.occupancy:
-                if not self._cv.wait(timeout):
-                    return  # Timeout reached. Returning.
+        while len(buffer) > self.occupancy:
+            if not self._cv.wait(timeout):
+                return  # Timeout reached. Returning.
+            self._cv.clear()
 
         if (self.capacity - self._tail) >= len(buffer):
             _src = self._buffer[self._tail:self._tail+len(buffer)]
