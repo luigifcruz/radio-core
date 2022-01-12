@@ -33,9 +33,21 @@ class PLL(Injector):
         """
         self._baseline = self._xs.hilbert(input_sig)
 
-    def wave(self, mult: float = 1.0):
+    def real(self, mult: float = 1.0):
         """
-        Return the phase-locked signal multiplied by mult.
+        Return the real part of the phase-locked signal multiplied by mult.
+
+        Parameters
+        ----------
+        mult : int, float
+            frequency multiplier of the output signal
+        """
+        _tmp = self._baseline ** mult
+        return self._xp.real(_tmp) / self._xp.abs(_tmp)
+
+    def image(self, mult: float = 1.0):
+        """
+        Return the imaginary part of the phase-locked signal multiplied by mult.
 
         Parameters
         ----------

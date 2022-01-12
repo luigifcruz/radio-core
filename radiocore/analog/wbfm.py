@@ -80,7 +80,7 @@ class WBFM(Injector):
         self._pll.step(self._plt_filter.run(_tmp))
 
         # Filter the Left - Right component.
-        _lmr = (self._pll.wave(2) * _tmp) * 1.0175
+        _lmr = (self._pll.image(2) * _tmp) * 1.0175
 
         # Mix L+R and L-R to generate L and R
         _l = self._decimate.run(_tmp + _lmr)
