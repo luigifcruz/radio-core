@@ -52,10 +52,6 @@ class Bandpass(Injector):
         self._taps = (self._xp.array(_b, dtype=self._dtype),
                       self._xp.array([1.0], dtype=self._dtype))
 
-        # TODO: Propose PR to cuSignal.
-        _, _delays = self._ss.group_delay((_b, 1.0))
-        self._group_delay = int(self._np.mean(_delays))
-
     def __nyq(self, freq_hz):
         return (freq_hz / (0.5 * self._input_size))
 
@@ -73,6 +69,5 @@ class Bandpass(Injector):
 
         _tmp = self._xp.asarray(input_sig)
         _tmp = self._xs.filtfilt(*self._taps, _tmp)
-        _tmp = self._xp.roll(_tmp, self._group_delay)
 
         return _tmp

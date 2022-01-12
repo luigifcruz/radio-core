@@ -43,4 +43,4 @@ class PLL(Injector):
             frequency multiplier of the output signal
         """
         _tmp = self._baseline ** mult
-        return self._xp.real(_tmp) / self._xp.abs(_tmp)
+        return self._xp.imag(_tmp) / self._xp.abs(_tmp)
