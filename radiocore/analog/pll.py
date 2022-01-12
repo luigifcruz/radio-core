@@ -42,4 +42,5 @@ class PLL(Injector):
         mult : int, float
             frequency multiplier of the output signal
         """
-        return self._xp.real(self._baseline**mult)
+        _tmp = self._baseline ** mult
+        return self._xp.real(_tmp) / self._xp.abs(_tmp)

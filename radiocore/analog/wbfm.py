@@ -45,9 +45,6 @@ class WBFM(Injector):
         self._plt_filter = Bandpass(self._input_size, 19e3-100, 19e3+100,
                                     cuda=self._cuda)
 
-        self._lmr_filter = Bandpass(self._input_size, 23e3, 53e3,
-                                    cuda=self._cuda)
-
         self._pll = PLL(cuda=self._cuda)
 
         self._decimate = Decimate(self._input_size, self._output_size,
@@ -83,8 +80,7 @@ class WBFM(Injector):
         self._pll.step(self._plt_filter.run(_tmp))
 
         # Filter the Left - Right component.
-        _lmr = self._lmr_filter.run(_tmp)
-        _lmr = (self._pll.wave(2) * _lmr) * 1.0175
+        _lmr = (self._pll.wave(2) * _tmp) * 1.0175
 
         # Mix L+R and L-R to generate L and R
         _l = self._decimate.run(_tmp + _lmr)
@@ -96,6 +92,9 @@ class WBFM(Injector):
 
         # Stack channels.
         _lr = self._xp.dstack((_l, _r))
+
+        # Remove DC.
+        _lr -= self._xp.mean(_lr)
 
         # Ensure Bounds
         _lr = self._xp.clip(_lr, -0.999, 0.999)

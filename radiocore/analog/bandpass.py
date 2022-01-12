@@ -31,7 +31,7 @@ class Bandpass(Injector):
                  start_freq: Union[int, float],
                  stop_freq: Union[int, float],
                  dtype: str = "float32",
-                 num_taps: int = 51,
+                 num_taps: int = 61,
                  window: str = "hamm",
                  cuda: bool = False):
         """Initialize the Bandpass class."""
@@ -47,14 +47,14 @@ class Bandpass(Injector):
 
         _lo = self.__nyq(self._start_freq)
         _hi = self.__nyq(self._stop_freq)
-        _b = self._xs.firwin(self._num_taps, [_lo, _hi],
+        _b = self._ss.firwin(self._num_taps, [_lo, _hi],
                              pass_zero=False, window=self._window)
-        _b = self._xp.array(_b, dtype=self._dtype)
-        _a = self._xp.array([1.0], dtype=self._dtype)
-        self._taps = (_b, _a)
+        self._taps = (self._xp.array(_b, dtype=self._dtype),
+                      self._xp.array([1.0], dtype=self._dtype))
 
-        _zi = self._xs.lfilter_zi(*self._taps)
-        self._state = self._xp.array(_zi, dtype=self._dtype)
+        # TODO: Propose PR to cuSignal.
+        _, _delays = self._ss.group_delay((_b, 1.0))
+        self._group_delay = int(self._np.mean(_delays))
 
     def __nyq(self, freq_hz):
         return (freq_hz / (0.5 * self._input_size))
@@ -72,6 +72,7 @@ class Bandpass(Injector):
             raise ValueError("input_sig size and input_size mismatch")
 
         _tmp = self._xp.asarray(input_sig)
-        _tmp, self._state = self._xs.lfilter(*self._taps, _tmp, zi=self._state)
+        _tmp = self._xs.filtfilt(*self._taps, _tmp)
+        _tmp = self._xp.roll(_tmp, self._group_delay)
 
         return _tmp

@@ -64,8 +64,6 @@ class FM(Injector):
         _tmp = self._xp.pad(_tmp, (0, 1))
         _tmp = _tmp / self._xp.pi
         _tmp = self._decimate.run(_tmp)
-        _tmp = _tmp - self._xp.mean(_tmp)
-        _tmp = _tmp / self._xp.max(self._xp.abs(_tmp));
         _tmp = self._xp.expand_dims(_tmp, axis=1)
 
         if self._cuda and numpy_output:
