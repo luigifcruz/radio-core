@@ -49,8 +49,9 @@ class Bandpass(Injector):
         _hi = self.__nyq(self._stop_freq)
         _b = self._ss.firwin(self._num_taps, [_lo, _hi],
                              pass_zero=False, window=self._window)
+        _a = [1.0]
         self._taps = (self._xp.array(_b, dtype=self._dtype),
-                      self._xp.array([1.0], dtype=self._dtype))
+                      self._xp.array(_a, dtype=self._dtype))
 
     def __nyq(self, freq_hz):
         return (freq_hz / (0.5 * self._input_size))
