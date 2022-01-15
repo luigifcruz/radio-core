@@ -26,6 +26,7 @@ class SdrDevice(Thread):
     def __init__(self, config: Config):
         super().__init__()
         self.config = config
+        self.running = False
 
         print("Configuring SDR device...")
         self.sdr = Device({"driver": self.config.device_name})
@@ -43,13 +44,17 @@ class SdrDevice(Thread):
         return self.buffer
 
     def run(self):
-        tbuf = Buffer(2**16, cuda=self.config.enable_cuda)
+        tmp_buffer = Buffer(2**16, cuda=self.config.enable_cuda)
+
         self.sdr.activateStream(self.rx)
         self.running = True
 
         while self.running:
-            c = self.sdr.readStream(self.rx, [tbuf.data], tbuf.size, timeoutUs=500000)
-            self.buffer.append(tbuf.data[:c.ret])
+            c = self.sdr.readStream(self.rx,
+                                    [tmp_buffer.data],
+                                    tmp_buffer.size,
+                                    timeoutUs=500000)
+            self.buffer.append(tmp_buffer.data[:c.ret])
 
     def stop(self):
         self.sdr.deactivateStream(self.rx)
@@ -64,6 +69,7 @@ class Dsp(Thread):
         super().__init__()
         self.config = config
         self.data_in = data_in
+        self.running = False
 
         print("Configuring DSP...")
         self.demod = self.config.demodulator(self.config.demod_rate,
@@ -82,14 +88,15 @@ class Dsp(Thread):
         return self.que
 
     def run(self):
-        tbuf = Buffer(self.config.input_rate, cuda=self.config.enable_cuda)
+        tmp_buffer = Buffer(self.config.input_rate, cuda=self.config.enable_cuda)
+
         self.running = True
 
         while self.running:
-            if not self.data_in.popleft(tbuf.data):
+            if not self.data_in.popleft(tmp_buffer.data):
                 continue
 
-            tmp = self.decim.run(tbuf.data)
+            tmp = self.decim.run(tmp_buffer.data)
             tmp = self.demod.run(tmp)
 
             self.que.put_nowait(tmp)

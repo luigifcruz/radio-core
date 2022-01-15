@@ -35,6 +35,7 @@ class SdrDevice(Thread):
         super().__init__()
         self.config = config
         self.tuner = tuner
+        self.running = False
 
         print("Configuring SDR device...")
         self.sdr = Device({"driver": self.config.device_name})
@@ -52,13 +53,17 @@ class SdrDevice(Thread):
         return self.buffer
 
     def run(self):
-        tbuf = Buffer(2**16, cuda=self.config.enable_cuda)
+        tmp_buffer = Buffer(2**16, cuda=self.config.enable_cuda)
+
         self.sdr.activateStream(self.rx)
         self.running = True
 
         while self.running:
-            c = self.sdr.readStream(self.rx, [tbuf.data], tbuf.size, timeoutUs=500000)
-            self.buffer.append(tbuf.data[:c.ret])
+            c = self.sdr.readStream(self.rx,
+                                    [tmp_buffer.data],
+                                    tmp_buffer.size,
+                                    timeoutUs=500000)
+            self.buffer.append(tmp_buffer.data[:c.ret])
 
     def stop(self):
         self.sdr.deactivateStream(self.rx)
@@ -75,19 +80,21 @@ class Dsp(Thread):
         self.config = config
         self.socket = socket
         self.data_in = data_in
+        self.running = False
 
     def run(self):
-        tbuf = Buffer(self.config.input_rate, cuda=self.config.enable_cuda)
+        tmp_buffer = Buffer(self.config.input_rate, cuda=self.config.enable_cuda)
+
         self.running = True
 
         while self.running:
             occupancy = (self.data_in.occupancy / self.data_in.capacity) * 100
             print(f"DSP buffer occupancy: {occupancy:.2f}%")
 
-            if not self.data_in.popleft(tbuf.data):
+            if not self.data_in.popleft(tmp_buffer.data):
                 continue
 
-            self.tuner.load(tbuf.data)
+            self.tuner.load(tmp_buffer.data)
 
             for channel in self.tuner.channels():
                 tmp = self.tuner.run(channel.index)
