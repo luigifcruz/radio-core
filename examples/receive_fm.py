@@ -54,7 +54,7 @@ class SdrDevice(Thread):
                                     [tmp_buffer.data],
                                     tmp_buffer.size,
                                     timeoutUs=500000)
-            self.buffer.append(tmp_buffer.data[:c.ret])
+            self.buffer.put(tmp_buffer.data[:c.ret])
 
     def stop(self):
         self.sdr.deactivateStream(self.rx)
@@ -93,7 +93,7 @@ class Dsp(Thread):
         self.running = True
 
         while self.running:
-            if not self.data_in.popleft(tmp_buffer.data):
+            if not self.data_in.get(tmp_buffer.data):
                 continue
 
             tmp = self.decim.run(tmp_buffer.data)

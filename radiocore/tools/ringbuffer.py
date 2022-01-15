@@ -39,10 +39,7 @@ class RingBuffer(Injector):
         self._capacity: int = int(capacity)
         self._cuda: bool = cuda
         self._dtype = dtype
-
-        self._abort = False
         self._cv = Event()
-
         self._occupancy: int = 0
         self._head: int = 0
         self._tail: int = 0
@@ -85,10 +82,16 @@ class RingBuffer(Injector):
         """Return printable version of the backbuffer."""
         return self._buffer.__str__()
 
-    def __copy(self, dst, src):
-        return self._xp.copyto(self._xp.asarray(dst), self._xp.asarray(src))
+    def __copy(self, dst, src, size):
+        if size == 0:
+            return
 
-    def append(self, buffer):
+        if size < 0:
+            raise ValueError(f"Copy size is negative! ({size})")
+
+        self._xp.copyto(dst[:size], src[:size])
+
+    def put(self, buffer):
         """
         Copy all buffer elements into ring buffer.
 
@@ -97,10 +100,12 @@ class RingBuffer(Injector):
         buffer : ndarray
             array containing the elements to be copied
         """
-        if len(buffer) > self.capacity:
+        _size: int = len(buffer)
+
+        if _size > self.capacity:
             raise ValueError("Input buffer is bigger than ring capacity.")
 
-        if len(buffer) > self.vacancy:
+        if _size > self.vacancy:
             if not self._allow_overflow:
                 raise ValueError("Overflow happened.")
 
@@ -109,18 +114,18 @@ class RingBuffer(Injector):
 
             self.reset()
 
-        if (self.capacity - self._head) >= len(buffer):
-            self._buffer[self._head:self._head+len(buffer)] = buffer
-        else:
-            _remainer = self.capacity - self._head
-            self._buffer[self._head:self.capacity] = buffer[:_remainer]
-            self._buffer[:len(buffer)-_remainer] = buffer[_remainer:len(buffer)]
+        _copy_len_a = min(_size, self.capacity - self._head)
+        _copy_len_b = _size - _copy_len_a if (_copy_len_a < _size) else 0
 
-        self._head = (self._head + len(buffer)) % self.capacity
-        self._occupancy = self.occupancy + len(buffer)
+        self.__copy(self._buffer[self._head:], buffer, _copy_len_a)
+        self.__copy(self._buffer, buffer[_copy_len_a:], _copy_len_b)
+
+        self._head = (self._head + _size) % self.capacity
+        self._occupancy += _size
+
         self._cv.set()
 
-    def popleft(self, buffer, timeout: float = 3.0):
+    def get(self, buffer, timeout: float = 3.0):
         """
         Fill all buffer elements with the ring buffer data.
 
@@ -131,30 +136,24 @@ class RingBuffer(Injector):
         timeout : float, optional
             how long in seconds the function should wait (default is 3)
         """
-        if len(buffer) > self.capacity:
+        _size: int = len(buffer)
+
+        if _size > self.capacity:
             raise ValueError("Input buffer is bigger than ring capacity.")
 
-        while len(buffer) > self.occupancy:
+        while _size > self.occupancy:
             if not self._cv.wait(timeout):
-                return  # Timeout reached. Returning.
+                # Timeout reached. Retuning.
+                return
             self._cv.clear()
 
-        if (self.capacity - self._tail) >= len(buffer):
-            _src = self._buffer[self._tail:self._tail+len(buffer)]
-            _dst = buffer
-            self.__copy(_dst, _src)
-        else:
-            _remainer = self.capacity - self._tail
+        _copy_len_a = min(_size, self.capacity - self._tail)
+        _copy_len_b = _size - _copy_len_a if (_copy_len_a < _size) else 0
 
-            _src = self._buffer[self._tail:self.capacity]
-            _dst = buffer[:_remainer]
-            self.__copy(_dst, _src)
+        self.__copy(buffer, self._buffer[self._tail:], _copy_len_a)
+        self.__copy(buffer[_copy_len_a:], self._buffer, _copy_len_b)
 
-            _src = self._buffer[:len(buffer)-_remainer]
-            _dst = buffer[_remainer:]
-            self.__copy(_dst, _src)
-
-        self._tail = (self._tail + len(buffer)) % self.capacity
-        self._occupancy = self.occupancy - len(buffer)
+        self._tail = (self._tail + _size) % self.capacity
+        self._occupancy -= _size
 
         return True
