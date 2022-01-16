@@ -1,5 +1,6 @@
 """Defines a Ring Buffer module."""
 
+import atomics
 from threading import Event
 from typing import Union
 
@@ -40,9 +41,9 @@ class RingBuffer(Injector):
         self._cuda: bool = cuda
         self._dtype = dtype
         self._cv = Event()
-        self._occupancy: int = 0
         self._head: int = 0
         self._tail: int = 0
+        self._occupancy = atomics.atomic(width=4, atype=atomics.INT)
 
         super().__init__(self._cuda)
 
@@ -60,7 +61,7 @@ class RingBuffer(Injector):
     @property
     def occupancy(self) -> int:
         """Return the current buffer occupancy. Used space."""
-        return self._occupancy
+        return self._occupancy.load()
 
     @property
     def vacancy(self) -> int:
@@ -76,7 +77,7 @@ class RingBuffer(Injector):
         """Reset ringbuffer state."""
         self._tail = 0
         self._head = 0
-        self._occupancy = 0
+        self._occupancy.store(0)
 
     def __str__(self) -> str:
         """Return printable version of the backbuffer."""
@@ -121,7 +122,7 @@ class RingBuffer(Injector):
         self.__copy(self._buffer, buffer[_copy_len_a:], _copy_len_b)
 
         self._head = (self._head + _size) % self.capacity
-        self._occupancy += _size
+        self._occupancy.add(_size)
 
         self._cv.set()
 
@@ -154,6 +155,6 @@ class RingBuffer(Injector):
         self.__copy(buffer[_copy_len_a:], self._buffer, _copy_len_b)
 
         self._tail = (self._tail + _size) % self.capacity
-        self._occupancy -= _size
+        self._occupancy.sub(_size)
 
         return True
