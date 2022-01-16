@@ -42,8 +42,8 @@ class WBFM(Injector):
         self._fm_demod = FM(self._input_size, self._input_size,
                             cuda=self._cuda)
 
-        self._plt_filter = Bandpass(self._input_size, 19e3-100, 19e3+100,
-                                    cuda=self._cuda)
+        self._plt_filter = Bandpass(self._input_size, 19e3-50, 19e3+50,
+                                    cuda=self._cuda, num_taps=41)
 
         self._pll = PLL(cuda=self._cuda)
 

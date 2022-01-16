@@ -89,7 +89,7 @@ class RingBuffer(Injector):
         if size < 0:
             raise ValueError(f"Copy size is negative! ({size})")
 
-        self._xp.copyto(dst[:size], src[:size])
+        dst[:size] = src[:size]
 
     def put(self, buffer):
         """

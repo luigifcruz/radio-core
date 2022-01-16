@@ -63,7 +63,7 @@ class SdrDevice(Thread):
                                     [tmp_buffer.data],
                                     tmp_buffer.size,
                                     timeoutUs=500000)
-            self.buffer.append(tmp_buffer.data[:c.ret])
+            self.buffer.put(tmp_buffer.data[:c.ret])
 
     def stop(self):
         self.sdr.deactivateStream(self.rx)
@@ -91,7 +91,7 @@ class Dsp(Thread):
             occupancy = (self.data_in.occupancy / self.data_in.capacity) * 100
             print(f"DSP buffer occupancy: {occupancy:.2f}%")
 
-            if not self.data_in.popleft(tmp_buffer.data):
+            if not self.data_in.get(tmp_buffer.data):
                 continue
 
             self.tuner.load(tmp_buffer.data)

@@ -153,7 +153,7 @@ class Tuner(Injector):
         _resample_factor = int(_channel.bandwidth)
 
         if self._win is None:
-            self._win = self._xs.get_window("hamm", int(self._input_bandwidth))
+            self._win = self._xs.get_window("hann", int(self._input_bandwidth))
             self._win = self._fft.fftshift(self._win)
 
         _tmp = self._xp.roll(self._buffer, _roll_factor)

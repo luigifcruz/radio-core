@@ -39,7 +39,7 @@ try:
 
     while True:
         [_, payload] = socket.recv_multipart()
-        audio = np.frombuffer(payload, dtype=np.float64)
+        audio = np.frombuffer(payload, dtype=np.float32)
         audio = audio.reshape((len(audio)//channels, channels))
         que.put_nowait([audio])
 
