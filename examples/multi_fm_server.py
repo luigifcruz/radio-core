@@ -63,7 +63,8 @@ class SdrDevice(Thread):
                                     [tmp_buffer.data],
                                     tmp_buffer.size,
                                     timeoutUs=500000)
-            self.buffer.put(tmp_buffer.data[:c.ret])
+            if c.ret > 0:
+                self.buffer.put(tmp_buffer.data[:c.ret])
 
     def stop(self):
         self.sdr.deactivateStream(self.rx)
