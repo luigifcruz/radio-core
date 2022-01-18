@@ -9,6 +9,12 @@ audio_rate: float = 48e3              # Audio bandwidth (32-48 kHz).
 channels: float = 2                   # Number of audio channels (2 for Stereo).
 server: str = "tcp://localhost:5555"  # Server address.
 
+if len(sys.argv) > 2:
+    frequency: float = float(sys.argv[1])
+    audio_rate: float = float(sys.argv[2])
+    channels: float = int(sys.argv[3])
+    server: str = sys.argv[4]
+
 # Setup ZeroMQ client.
 print("Creating ZeroMQ server...")
 context = zmq.Context()

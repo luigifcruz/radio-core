@@ -110,6 +110,10 @@ class Dsp(Thread):
 if __name__ == "__main__":
     config = Config()
 
+    # Get frequency from command-line if available.
+    if len(sys.argv) > 1:
+        config.frequency = float(sys.argv[1])
+
     # Configure SDR device thread.
     rx = SdrDevice(config)
     dsp = Dsp(config, rx.output)
