@@ -1,46 +1,110 @@
-from timeit import timeit
-from radio.analog import WBFM, MFM
-import warnings
 import numpy as np
+from timeit import timeit
 
+from radiocore import WBFM, MFM, FM, Decimate, Buffer, Tuner, RingBuffer, HasCuda
+import warnings
 
-class AnalogTest:
-    
-    def __init__(self, sfs, afs, mult, cuda):
-        super(AnalogTest, self).__init__()
-        self.sfs = int(sfs)
-        self.afs = int(afs)
-        self.tau = 75e-6
-        self.mult = int(mult)
+N_ITER = 50
+
+class FmBenchmark:
+
+    def __init__(self, input_size, output_size, cuda):
+        self.input_size = int(input_size)
+        self.output_size = int(output_size)
         self.cuda = cuda
-        self.number = 500
+        self.iterations = N_ITER
 
-        self.sdr_buff = 1024
-        self.dsp_buff = self.sdr_buff * self.mult
-
-        self.wbfm = WBFM(self.tau, self.sfs, self.afs, cuda)
-        self.mfm = MFM(self.tau, self.sfs, self.afs, cuda)
-
-        if self.cuda:
-            import cusignal as sig
-            self.buff = sig.get_shared_mem(self.dsp_buff, dtype=np.complex64)
-        else:
-            self.buff = np.zeros([self.dsp_buff], dtype=np.complex64)
+        self.wbfm = WBFM(self.input_size, self.output_size, cuda=cuda)
+        self.mfm = MFM(self.input_size, self.output_size, cuda=cuda)
+        self.fm = FM(self.input_size, self.output_size, cuda=cuda)
+        self.buff = Buffer(self.input_size, dtype=np.complex64, cuda=cuda)
 
     def eval(self, func, name):
-        time = timeit(func, globals={'self': self, 'np': np}, number=self.number) / self.number
-        allowance = self.dsp_buff/self.sfs
-        passed = True if allowance > time else False
-        print('     {} scored: {} {}({})'.format(name, time, passed, allowance))
+        time = timeit(func, globals={'self': self, 'np': np}, number=self.iterations)
+        print('     {} scored: {}'.format(name, time / self.iterations))
 
     def test(self):
-        print('#### Analog Benchmark (IFS: {}, OFS: {}, MULT: {}, CUDA: {}):'
-              .format(self.sfs, self.afs, self.mult, self.cuda))
-        self.eval('self.wbfm.run(self.buff)', 'WBFM')
-        self.eval('self.mfm.run(self.buff)', 'MFM')
+        print('#### FM Benchmark (Input size: {}, Output size: {}, CUDA: {}):'
+              .format(self.input_size, self.output_size, self.cuda))
+        self.eval('self.wbfm.run(self.buff.data)', 'WBFM')
+        self.eval('self.mfm.run(self.buff.data)', 'MFM')
+        self.eval('self.fm.run(self.buff.data)', 'FM')
+
+
+class DecimateBenchmark:
+
+    def __init__(self, input_size, output_size, cuda):
+        self.input_size = int(input_size)
+        self.output_size = int(output_size)
+        self.cuda = cuda
+        self.iterations = N_ITER
+
+        self.decim = Decimate(self.input_size, self.output_size, cuda=cuda)
+        self.buff = Buffer(self.input_size, dtype=np.complex64, cuda=cuda)
+
+    def eval(self, func, name):
+        time = timeit(func, globals={'self': self, 'np': np}, number=self.iterations)
+        print('     {} scored: {}'.format(name, time / self.iterations))
+
+    def test(self):
+        print('#### Decimate Benchmark (Input size: {}, Output size: {}, CUDA: {}):'
+              .format(self.input_size, self.output_size, self.cuda))
+        self.eval('self.decim.run(self.buff.data)', 'Decimate')
+
+
+class TunerBenchmark:
+
+    def __init__(self, input_size, channel_size, cuda):
+        self.input_size = int(input_size)
+        self.channel_size = int(channel_size)
+        self.cuda = cuda
+        self.iterations = N_ITER
+
+        self.tuner = Tuner(cuda=self.cuda)
+        self.tuner.add_channel(94.5e6, self.channel_size, FM)
+        self.tuner.add_channel(97.5e6, self.channel_size, FM)
+        self.tuner.add_channel(96.9e6, self.channel_size, FM)
+        self.tuner.request_bandwidth(self.input_size)
+
+        self.buff = Buffer(self.input_size, dtype=np.complex64, cuda=cuda)
+
+    def eval(self, func, name):
+        time = timeit(func, globals={'self': self, 'np': np}, number=self.iterations)
+        print('     {} scored: {}'.format(name, time / self.iterations))
+
+    def test(self):
+        print('#### Tuner Benchmark (Input size: {}, Channel size: {}, CUDA: {}):'
+              .format(self.input_size, self.channel_size, self.cuda))
+        self.eval('self.tuner.load(self.buff.data);self.tuner.run(0);', 'Tuner')
+
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
-    AnalogTest(256e3, 32e3, 16, False).test()
-    AnalogTest(256e3, 32e3, 16, True).test()
-    AnalogTest(256e3, 32e3, 16, True).test()
+
+    # Benchmark FM demodulators.
+    FmBenchmark(256e3, 32e3, False).test()
+
+    if HasCuda():
+        FmBenchmark(256e3, 32e3, True).test()
+
+    print("=" * 80)
+
+
+    # Benchmark Decimation.
+    DecimateBenchmark(10e6, 250e3, False).test()
+    DecimateBenchmark(2.5e6, 250e3, False).test()
+
+    if HasCuda():
+        DecimateBenchmark(10e6, 250e3, True).test()
+        DecimateBenchmark(2.5e6, 250e3, True).test()
+
+    print("=" * 80)
+
+
+    # Benchmark Tuner.
+    TunerBenchmark(10e6, 250e3, False).test()
+
+    if HasCuda():
+        TunerBenchmark(10e6, 250e3, True).test()
+
+    print("=" * 80)

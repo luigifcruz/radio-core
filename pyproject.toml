@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "radiocore"
+version = "1.0.0"
+description = "Python based library for FM, AM and WBFM demodulation."
+readme = "README.md"
+license = "GPL-3.0"
+authors = [
+    "Luigi Cruz <@luigifcruz>",
+]
+
+[project.urls]
+homepage = "https://github.com/luigifcruz/radio-core"
+repository = "https://github.com/luigifcruz/radio-core"
+documentation = "https://luigifcruz.github.io/radio-core/"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+reportGeneralTypeIssues = false
+
+[tool.poetry.dependencies]
+python = ">=3.7,<4"
+numpy = "^1.21"
+scipy = "^1.5"
+atomics = "^1.0.2"
+pyzmq = "^21.0.0"
+cupy = {version = "^10.0.0", optional = true}
+sounddevice = "^0.4.3"
+
+[tool.poetry.extras]
+cuda = ["cupy"]
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+Sphinx = "^4.2.0"
+flake8 = "^4.0.1"
+pep8-naming = "^0.12.1"
+flake8-builtins = "^1.5.3"
+flake8-docstrings = "^1.6.0"
