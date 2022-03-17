@@ -1,0 +1,25 @@
+name: radiocore
+
+channels:
+  - conda-forge
+  - nvidia
+  - defaults
+  - numba
+  - file://opt/deepwave/conda-channels/airstack-conda
+
+dependencies:
+  - python
+  - scipy>=1.5.0
+  - numpy>=1.21
+  - matplotlib
+  - numba>=0.49
+  - pytest
+  - pytest-benchmark
+  - sphinx
+  - sphinx_rtd_theme
+  - numpydoc
+  - ipython
+  - soapysdr-module-airt
+  - pip
+  - pip:
+    - cupy>=10.0
